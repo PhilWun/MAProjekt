@@ -1,3 +1,4 @@
+import time
 from typing import Dict, Callable
 
 import numpy as np
@@ -6,7 +7,7 @@ from qiskit import Aer, execute
 from qiskit.aqua.components.optimizers import COBYLA
 
 
-def get_var_form(params):
+def create_simple_circuit(params):
     qr = QuantumRegister(1, name="q")
     cr = ClassicalRegister(1, name='c')
     qc = QuantumCircuit(qr, cr)
@@ -32,7 +33,7 @@ def get_expected_values(counts: Dict[str, int], shots_cnt: int):
 
 def objective_function(target: np.ndarray, backend, shots_cnt: int) -> Callable[[np.ndarray], float]:
     def callable_obj_func(params: np.ndarray):
-        qc = get_var_form(params)
+        qc = create_simple_circuit(params)
         result = execute(qc, backend, shots=shots_cnt).result()
         output = get_expected_values(result.get_counts(qc), shots_cnt)
 
@@ -53,10 +54,13 @@ def main():
 
     # Create the initial parameters (noting that our single qubit variational form has 3 parameters)
     params = np.random.rand(3)
+    time1 = time.time()
     ret = optimizer.optimize(num_vars=3, objective_function=objective_function(target, backend, NUM_SHOTS), initial_point=params)
+    time2 = time.time()
+    print("Time: ", time2 - time1)
 
     # Obtain the output distribution using the final parameters
-    qc = get_var_form(ret[0])
+    qc = create_simple_circuit(ret[0])
     counts = execute(qc, backend, shots=NUM_SHOTS).result().get_counts(qc)
     output = get_expected_values(counts, NUM_SHOTS)
 
