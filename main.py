@@ -62,15 +62,21 @@ def test_all_optimizers():
 	]
 
 	target = np.array([0.8])
+	backend = QasmSimulator()
+	obj_func = objective_function(target, backend, 1000)
 
 	for optim in optimizers:
-		backend = QasmSimulator()
-		obj_func = objective_function(target, backend, 1000)
-		error, train_time = train_circuit(3, obj_func, optim)
+		error_list: List[float] = []
+		train_time_list: List[float] = []
+
+		for _ in range(10):
+			error, train_time = train_circuit(3, obj_func, optim)
+			error_list.append(error)
+			train_time_list.append(train_time)
 
 		print(type(optim).__name__)
-		print("Error:", error)
-		print("Time:", train_time)
+		print("median error:", np.median(error_list))
+		print("median time:", np.median(train_time_list))
 		print()
 
 
