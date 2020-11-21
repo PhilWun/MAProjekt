@@ -12,7 +12,7 @@ def create_simple_circuit(params):
 	qr = QuantumRegister(1, name="q")
 	cr = ClassicalRegister(1, name='c')
 	qc = QuantumCircuit(qr, cr)
-	qc.u(params[0], params[1], params[2], qr[0])
+	qc.rx(params[0], qr[0])
 	qc.measure(qr, cr)
 
 	return qc
@@ -47,18 +47,18 @@ def objective_function(target: np.ndarray, backend, shots_cnt: int) -> Callable[
 
 def test_all_optimizers():
 	optimizers: List[Optimizer] = [
-		ADAM(),
-		CG(),
-		COBYLA(),
-		L_BFGS_B(),
-		GSLS(),
-		NELDER_MEAD(),
-		NFT(),
-		# P_BFGS(),
-		POWELL(),
-		SLSQP(),
-		SPSA(),
-		TNC()
+		ADAM(maxiter=100, tol=0, lr=0.1, eps=0.1),
+		# CG(),
+		# COBYLA(),
+		# L_BFGS_B(),
+		# GSLS(),
+		# NELDER_MEAD(),
+		# NFT(),
+		# # P_BFGS(),
+		# POWELL(),
+		# SLSQP(),
+		# SPSA(),
+		# TNC()
 	]
 
 	target = np.array([0.8])
@@ -69,8 +69,8 @@ def test_all_optimizers():
 		error_list: List[float] = []
 		train_time_list: List[float] = []
 
-		for _ in range(10):
-			error, train_time = train_circuit(3, obj_func, optim)
+		for _ in range(100):
+			error, train_time = train_circuit(1, obj_func, optim)
 			error_list.append(error)
 			train_time_list.append(train_time)
 
@@ -85,6 +85,10 @@ def train_circuit(num_vars: int, obj_func: Callable[[np.ndarray], float], optim:
 	time1 = time.time()
 	ret = optim.optimize(num_vars=num_vars, objective_function=obj_func, initial_point=params)
 	time2 = time.time()
+	print(ret[0])
+	print(ret[1])
+	print(ret[2])
+	# print()
 
 	return ret[1], time2 - time1
 
