@@ -5,7 +5,9 @@ from qiskit.circuit.library import UGate
 
 def create_unit_cell(param_prefix: str, num_qubits: int):
 	"""
-	Implements circuit B from J. Romero, J. P. Olson, and A. Aspuru-Guzik, “Quantum autoencoders for efficient compression of quantum data,” Quantum Sci. Technol., vol. 2, no. 4, p. 045001, Dec. 2017, doi: 10.1088/2058-9565/aa8072.
+	Implements circuit B from J. Romero, J. P. Olson, and A. Aspuru-Guzik, “Quantum autoencoders for efficient compression
+	of quantum data,” Quantum Sci. Technol., vol. 2, no. 4, p. 045001, Dec. 2017, doi: 10.1088/2058-9565/aa8072.
+
 	:param param_prefix:
 	:param num_qubits:
 	:return:
