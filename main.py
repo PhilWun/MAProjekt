@@ -48,17 +48,16 @@ def objective_function(target: np.ndarray, backend, shots_cnt: int) -> Callable[
 def test_all_optimizers():
 	optimizers: List[Optimizer] = [
 		ADAM(maxiter=100, tol=0, lr=0.1, eps=0.1),
-		# CG(),
-		# COBYLA(),
-		# L_BFGS_B(),
-		# GSLS(),
-		# NELDER_MEAD(),
-		# NFT(),
-		# # P_BFGS(),
-		# POWELL(),
-		# SLSQP(),
-		# SPSA(),
-		# TNC()
+		CG(maxiter=100, gtol=0, eps=0.1),
+		COBYLA(maxiter=100),  # gradient-free optimization
+		L_BFGS_B(maxiter=100, epsilon=0.1),
+		GSLS(maxiter=100, min_gradient_norm=0),
+		NELDER_MEAD(maxfev=100, xatol=0),  # gradient-free optimization
+		NFT(maxiter=100),  # gradient-free optimization
+		POWELL(maxiter=100, xtol=0),  # gradient-free optimization
+		SLSQP(maxiter=100, ftol=0, eps=0.1),
+		SPSA(maxiter=100),  # recommended for noisy measurements, approximates gradient with two measurements
+		TNC(maxiter=100, eps=0.1, ftol=0, xtol=0, gtol=0)
 	]
 
 	target = np.array([0.8])
@@ -69,14 +68,15 @@ def test_all_optimizers():
 		error_list: List[float] = []
 		train_time_list: List[float] = []
 
-		for _ in range(100):
+		for _ in range(10):
 			error, train_time = train_circuit(1, obj_func, optim)
 			error_list.append(error)
 			train_time_list.append(train_time)
 
 		print(type(optim).__name__)
-		print("median error:", np.median(error_list))
-		print("median time:", np.median(train_time_list))
+		print("error (mean):", np.mean(error_list))
+		print("error (std):", np.std(error_list))
+		print("mean time:", np.median(train_time_list))
 		print()
 
 
@@ -85,9 +85,9 @@ def train_circuit(num_vars: int, obj_func: Callable[[np.ndarray], float], optim:
 	time1 = time.time()
 	ret = optim.optimize(num_vars=num_vars, objective_function=obj_func, initial_point=params)
 	time2 = time.time()
-	print(ret[0])
-	print(ret[1])
-	print(ret[2])
+	# print(ret[0])
+	# print(ret[1])
+	# print(ret[2])
 	# print()
 
 	return ret[1], time2 - time1
