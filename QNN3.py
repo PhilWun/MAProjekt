@@ -1,9 +1,9 @@
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import UGate
 
 
-def create_unit_cell(param_prefix: str, num_qubits: int):
+def create_qiskit_circuit(param_prefix: str, num_qubits: int) -> QuantumCircuit:
 	"""
 	Implements the circuit from A. Abbas, D. Sutter, C. Zoufal, A. Lucchi, A. Figalli, and S. Woerner, “The power of
 	quantum neural networks,” arXiv:2011.00027 [quant-ph], Oct. 2020, Accessed: Nov. 08, 2020. [Online]. Available:
@@ -13,20 +13,21 @@ def create_unit_cell(param_prefix: str, num_qubits: int):
 	:param num_qubits:
 	:return:
 	"""
-	register = QuantumRegister(num_qubits)
-	unit_cell = QuantumCircuit(register)
+	qr = QuantumRegister(num_qubits)
+	cr = ClassicalRegister(num_qubits)
+	unit_cell = QuantumCircuit(qr, cr)
 	layer_idx = 0
 
 	# first layer of single qubit y-rotations
 	for i in range(num_qubits):
 		unit_cell.ry(
 			Parameter(param_prefix + str(layer_idx) + "_" + str(i)),
-			register[i])
+			qr[i])
 
 	layer_idx += 1
 	unit_cell.barrier()
 
-	# one layer of controlled ratations per qubit
+	# apply CNOT to every qubit pair
 	for i in range(1, num_qubits):
 		for j in range(0, i):
 			unit_cell.cnot(j, i)
@@ -37,17 +38,16 @@ def create_unit_cell(param_prefix: str, num_qubits: int):
 	for i in range(num_qubits):
 		unit_cell.ry(
 			Parameter(param_prefix + str(layer_idx) + "_" + str(i)),
-			register[i])
+			qr[i])
 
 	unit_cell.barrier()
+	unit_cell.measure(qr, cr)
 
-	# TODO: measure in z-basis
-
-	print(unit_cell.draw(output="text"))
+	return unit_cell
 
 
 def main():
-	create_unit_cell("", 4)
+	create_qiskit_circuit("", 4)
 
 
 if __name__ == "__main__":

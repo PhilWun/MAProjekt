@@ -1,9 +1,9 @@
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import UGate
 
 
-def create_unit_cell(param_prefix: str, num_qubits: int):
+def create_qiskit_circuit(param_prefix: str, num_qubits: int) -> QuantumCircuit:
 	"""
 	Implements circuit B from J. Romero, J. P. Olson, and A. Aspuru-Guzik, “Quantum autoencoders for efficient compression
 	of quantum data,” Quantum Sci. Technol., vol. 2, no. 4, p. 045001, Dec. 2017, doi: 10.1088/2058-9565/aa8072.
@@ -12,8 +12,9 @@ def create_unit_cell(param_prefix: str, num_qubits: int):
 	:param num_qubits:
 	:return:
 	"""
-	register = QuantumRegister(num_qubits)
-	unit_cell = QuantumCircuit(register)
+	qr = QuantumRegister(num_qubits)
+	cr = ClassicalRegister(num_qubits)
+	unit_cell = QuantumCircuit(qr, cr)
 	layer_idx = 0
 
 	# first layer of single qubit rotations
@@ -22,7 +23,7 @@ def create_unit_cell(param_prefix: str, num_qubits: int):
 			Parameter(param_prefix + str(layer_idx) + "_" + str(i) + "a"),
 			Parameter(param_prefix + str(layer_idx) + "_" + str(i) + "b"),
 			Parameter(param_prefix + str(layer_idx) + "_" + str(i) + "c"),
-			register[i])
+			qr[i])
 
 	unit_cell.barrier()
 
@@ -38,7 +39,7 @@ def create_unit_cell(param_prefix: str, num_qubits: int):
 					Parameter(param_prefix + str(layer_idx + i) + "_" + str(i) + "_" + str(j) + "c")
 				).control()
 
-				unit_cell.append(controlled_rotation_gate, [register[i], register[j]])
+				unit_cell.append(controlled_rotation_gate, [qr[i], qr[j]])
 
 	unit_cell.barrier()
 	layer_idx += num_qubits
@@ -49,15 +50,16 @@ def create_unit_cell(param_prefix: str, num_qubits: int):
 			Parameter(param_prefix + str(layer_idx) + "_" + str(i) + "a"),
 			Parameter(param_prefix + str(layer_idx) + "_" + str(i) + "b"),
 			Parameter(param_prefix + str(layer_idx) + "_" + str(i) + "c"),
-			register[i])
+			qr[i])
 
 	unit_cell.barrier()
+	unit_cell.measure(qr, cr)
 
-	print(unit_cell.draw(output="text"))
+	return unit_cell
 
 
 def main():
-	create_unit_cell("", 3)
+	create_qiskit_circuit("", 3)
 
 
 if __name__ == "__main__":

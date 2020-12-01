@@ -1,51 +1,18 @@
-import time
-from typing import Dict, Callable, Tuple, List
+from typing import List, Callable
 
 import numpy as np
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit import Aer, execute
+from qiskit import QuantumCircuit, transpile, assemble
 from qiskit.aqua.components.optimizers import Optimizer, ADAM, CG, COBYLA, L_BFGS_B, GSLS, NELDER_MEAD, NFT, P_BFGS, POWELL, SLSQP, SPSA, TNC
-from qiskit.providers.aer import QasmSimulator
+from qiskit.providers import BaseBackend
+from qiskit.providers.aer import QasmSimulator, AerJob
+
+import QNN1
+import QNN2
+import QNN3
+from tools import train_circuit, get_expected_values
 
 
-def create_simple_circuit(params):
-	qr = QuantumRegister(1, name="q")
-	cr = ClassicalRegister(1, name='c')
-	qc = QuantumCircuit(qr, cr)
-	qc.rx(params[0], qr[0])
-	qc.measure(qr, cr)
-
-	return qc
-
-
-def get_expected_values(counts: Dict[str, int], shots_cnt: int):
-	qubit_cnt = len(next(iter(counts.keys())))
-	dist = np.zeros((qubit_cnt, ))
-
-	for k, v in counts.items():
-		for i, c in enumerate(k):
-			if c == "1":
-				dist[qubit_cnt - 1 - i] += v
-
-	dist /= shots_cnt
-
-	return dist
-
-
-def objective_function(target: np.ndarray, backend, shots_cnt: int) -> Callable[[np.ndarray], float]:
-	def callable_obj_func(params: np.ndarray):
-		qc = create_simple_circuit(params)
-		result = execute(qc, backend, shots=shots_cnt).result()
-		output = get_expected_values(result.get_counts(qc), shots_cnt)
-
-		cost: float = ((output - target) * (output - target)).sum()
-
-		return cost
-
-	return callable_obj_func
-
-
-def test_all_optimizers():
+def test_all_optimizers(obj_func: Callable[[np.ndarray], float], param_num: int):
 	optimizers: List[Optimizer] = [
 		ADAM(maxiter=100, tol=0, lr=0.1, eps=0.1),
 		CG(maxiter=100, gtol=0, eps=0.1),
@@ -60,16 +27,12 @@ def test_all_optimizers():
 		TNC(maxiter=100, eps=0.1, ftol=0, xtol=0, gtol=0)
 	]
 
-	target = np.array([0.8])
-	backend = QasmSimulator()
-	obj_func = objective_function(target, backend, 1000)
-
 	for optim in optimizers:
 		error_list: List[float] = []
 		train_time_list: List[float] = []
 
 		for _ in range(10):
-			error, train_time = train_circuit(1, obj_func, optim)
+			error, train_time, param_values = train_circuit(param_num, obj_func, optim)
 			error_list.append(error)
 			train_time_list.append(train_time)
 
@@ -80,47 +43,49 @@ def test_all_optimizers():
 		print()
 
 
-def train_circuit(num_vars: int, obj_func: Callable[[np.ndarray], float], optim: Optimizer) -> Tuple[float, float]:
-	params = np.random.rand(num_vars)
-	time1 = time.time()
-	ret = optim.optimize(num_vars=num_vars, objective_function=obj_func, initial_point=params)
-	time2 = time.time()
-	# print(ret[0])
-	# print(ret[1])
-	# print(ret[2])
-	# print()
+def _bind_params(circ: QuantumCircuit, values: np.ndarray):
+	value_dict = {}
 
-	return ret[1], time2 - time1
+	for param, value in zip(circ.parameters, values):
+		value_dict[param] = value
+
+	return circ.bind_parameters(value_dict)
 
 
-def main():
-	backend = Aer.get_backend("qasm_simulator")
-	NUM_SHOTS = 1000
-	target = np.array([0.8])
+def measure_output(values: np.ndarray, circ: QuantumCircuit, backend: BaseBackend) -> np.ndarray:
+	qobj = assemble(_bind_params(circ, values))
+	job: AerJob = backend.run(qobj)
+	result = job.result()
+	counts = result.get_counts()
+	output = get_expected_values(counts)
 
-	# Initialize the COBYLA optimizer
-	optimizer = COBYLA()
-
-	# train circuit
-	obj_func = objective_function(target, backend, NUM_SHOTS)
-	error, train_time = train_circuit(3, obj_func, COBYLA())
-
-	print("Error:", error)
-	print("Time:", train_time)
+	return output
 
 
-	# Obtain the output distribution using the final parameters
-	# qc = create_simple_circuit(ret[0])
-	# counts = execute(qc, backend, shots=NUM_SHOTS).result().get_counts(qc)
-	# output = get_expected_values(counts, NUM_SHOTS)
+def obj_func(values: np.ndarray, circ: QuantumCircuit, backend: BaseBackend, target: np.ndarray, error_mask: np.ndarray) -> float:
+	output = measure_output(values, circ, backend)
+	mse = ((output - target) * (output - target) * error_mask).sum() / error_mask.sum()
 
-	# print("Target", target)
-	# print("Output:", output)
-	# print("Output Error:", ret[1])
-	# print("Number of objectiv function calls:", ret[2])
-	# print("Parameters Found:", ret[0])
+	return mse
+
+
+def test_qnn():
+	qnn: QuantumCircuit = QNN3.create_qiskit_circuit("", 3)
+	backend = QasmSimulator()
+	transpiled_qnn: QuantumCircuit = transpile(qnn, backend=backend)
+	test_all_optimizers(
+		Optimizer.wrap_function(obj_func, (transpiled_qnn, backend, np.array([0.8, 0.8, 0.8]), np.array([1, 1, 1]))),
+		len(transpiled_qnn.parameters))
+
+	# _, _, param_values = train_circuit(
+	# 	len(transpiled_qnn.parameters),
+	# 	Optimizer.wrap_function(obj_func, (transpiled_qnn, backend, np.array([0.8, 0.8, 0.8]), np.array([1, 1, 1]))),
+	# 	COBYLA(maxiter=100))
+
+	# print(measure_output(param_values, transpiled_qnn, backend))
 
 
 if __name__ == "__main__":
 	# main()
-	test_all_optimizers()
+	# test_all_optimizers()
+	test_qnn()

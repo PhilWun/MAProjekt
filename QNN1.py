@@ -1,8 +1,8 @@
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Parameter, Instruction
 
 
-def create_unit_cell(param_prefix: str, num_qubits: int):
+def create_qiskit_circuit(param_prefix: str, num_qubits: int) -> QuantumCircuit:
 	"""
 	Implements circuit A from J. Romero, J. P. Olson, and A. Aspuru-Guzik, “Quantum autoencoders for efficient compression
 	of quantum data,” Quantum Sci. Technol., vol. 2, no. 4, p. 045001, Dec. 2017, doi: 10.1088/2058-9565/aa8072.
@@ -11,20 +11,23 @@ def create_unit_cell(param_prefix: str, num_qubits: int):
 	:param num_qubits:
 	:return:
 	"""
-	register = QuantumRegister(num_qubits)
-	unit_cell = QuantumCircuit(register)
+	qr = QuantumRegister(num_qubits)
+	cr = ClassicalRegister(num_qubits)
+	unit_cell = QuantumCircuit(qr, cr)
 	idx = 1
 
 	for i in range(num_qubits - 1):
 		for j in range(num_qubits - 1 - i):
-			inst = create_two_qubit_gate(param_prefix + "U" + str(idx) + "_")
-			unit_cell.append(inst, [register[j], register[j + i + 1]])
+			inst = _create_two_qubit_gate(param_prefix + "U" + str(idx) + "_")
+			unit_cell.append(inst, [qr[j], qr[j + i + 1]])
 			idx += 1
 
-	print(unit_cell.draw(output="text"))
+	unit_cell.measure(qr, cr)
+
+	return unit_cell
 
 
-def create_two_qubit_gate(param_prefix: str) -> Instruction:
+def _create_two_qubit_gate(param_prefix: str) -> Instruction:
 	"""
 	Implements a general two-qubit gate as seen in F. Vatan and C. Williams, “Optimal Quantum Circuits for General
 	Two-Qubit Gates,” Phys. Rev. A, vol. 69, no. 3, p. 032315, Mar. 2004, doi: 10.1103/PhysRevA.69.032315.
@@ -77,7 +80,7 @@ def create_two_qubit_gate(param_prefix: str) -> Instruction:
 
 
 def main():
-	create_unit_cell("", 3)
+	create_qiskit_circuit("", 3)
 
 
 if __name__ == "__main__":
