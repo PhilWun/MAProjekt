@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
+import numpy as np
 
-optimizer_names = [
+optimizer_names = np.array([
 	"ADAM",
 	"CG",
 	"COBYLA",
@@ -12,9 +13,9 @@ optimizer_names = [
 	"SLSQP",
 	"SPSA",
 	"TNC"
-]
+])
 
-qnn1_error_mean = [
+qnn1_error_mean = np.array([
 	0.0004343859354654954,
 	0.04714000066121421,
 	0.00017936706542968767,
@@ -26,9 +27,9 @@ qnn1_error_mean = [
 	0.00012531280517578153,
 	0.06911483128865561,
 	0.16062077840169273
-]
+])
 
-qnn1_error_std = [
+qnn1_error_std = np.array([
 	0.00044023932358428104,
 	0.0553221613443943,
 	0.0002691437093958139,
@@ -40,9 +41,9 @@ qnn1_error_std = [
 	7.739919644372208e-05,
 	0.05926069911273663,
 	0.05672759380419152
-]
+])
 
-qnn1_time = [
+qnn1_time = np.array([
 	44.58244276046753,
 	7.106216549873352,
 	1.08284592628479,
@@ -54,9 +55,9 @@ qnn1_time = [
 	50.274120450019836,
 	2.586902379989624,
 	17.28065037727356
-]
+])
 
-qnn2_error_mean = [
+qnn2_error_mean = np.array([
 	0.00020294825236002616,
 	0.03941155751546224,
 	0.0002006340026855469,
@@ -68,9 +69,9 @@ qnn2_error_mean = [
 	0.00018444697062174485,
 	0.10249197006225588,
 	0.38398916244506837
-]
+])
 
-qnn2_error_std = [
+qnn2_error_std = np.array([
 	0.00014254836629974427,
 	0.08233059991411082,
 	0.00018289764728015686,
@@ -82,9 +83,9 @@ qnn2_error_std = [
 	0.000190701632783842,
 	0.09137762043510603,
 	0.13730675627047542
-]
+])
 
-qnn2_time = [
+qnn2_time = np.array([
 	55.95191264152527,
 	13.681773900985718,
 	2.4715410470962524,
@@ -96,9 +97,9 @@ qnn2_time = [
 	75.12416195869446,
 	7.731313467025757,
 	26.27416467666626
-]
+])
 
-qnn3_error_mean = [
+qnn3_error_mean = np.array([
 	0.00034091949462890713,
 	0.030092983245849615,
 	0.0005755996704101567,
@@ -110,9 +111,9 @@ qnn3_error_mean = [
 	0.004076932271321617,
 	0.12331768035888672,
 	0.19021179835001628
-]
+])
 
-qnn3_error_std = [
+qnn3_error_std = np.array([
 	0.00030341183932524094,
 	0.0579801024686729,
 	0.0005693157343306548,
@@ -124,9 +125,9 @@ qnn3_error_std = [
 	0.008404034747920074,
 	0.16971084435839862,
 	0.18631584264568918
-]
+])
 
-qnn3_time = [
+qnn3_time = np.array([
 	3.2893320322036743,
 	0.763243556022644,
 	0.3120748996734619,
@@ -138,7 +139,7 @@ qnn3_time = [
 	2.8636887073516846,
 	1.1721922159194946,
 	0.9781012535095215
-]
+])
 
 tmp = [
 	(qnn1_error_mean, qnn1_error_std, qnn1_time, "QNN1"),
@@ -146,11 +147,29 @@ tmp = [
 	(qnn3_error_mean, qnn3_error_std, qnn3_time, "QNN3")
 ]
 
+gradient_based = [0, 1, 3, 4, 8, 9, 10]
+gradient_free = [2, 5, 6, 7]
+
 for error_mean, error_std, time, name in tmp:
-	fig = go.Figure(data=go.Scatter(
-		x=optimizer_names,
-		y=error_mean,
+	# plot error
+	fig = go.Figure()
+	fig.add_trace(go.Scatter(
+		x=optimizer_names[gradient_based],
+		y=error_mean[gradient_based],
 		mode="markers",
+		name="gradientenbasiert",
+		error_y={
+			"type": "data",
+			"array": error_std,
+			"visible": True
+		}
+	))
+
+	fig.add_trace(go.Scatter(
+		x=optimizer_names[gradient_free],
+		y=error_mean[gradient_free],
+		mode="markers",
+		name="gradientenfrei",
 		error_y={
 			"type": "data",
 			"array": error_std,
@@ -162,9 +181,18 @@ for error_mean, error_std, time, name in tmp:
 	fig.update_layout(template="plotly_white", title="Fehler nach 100 Iterationen (" + name + ")", xaxis_title="Optimierer", yaxis_title="Fehler (MSE)")
 	fig.show()
 
-	fig = go.Figure(data=go.Bar(
-		x=optimizer_names,
-		y=time
+	# plot time
+	fig = go.Figure()
+	fig.add_trace(go.Bar(
+		x=optimizer_names[gradient_based],
+		y=time[gradient_based],
+		name="gradientenbasiert"
+	))
+
+	fig.add_trace(go.Bar(
+		x=optimizer_names[gradient_free],
+		y=time[gradient_free],
+		name="gradientenfrei"
 	))
 
 	fig.update_yaxes(range=[0, 80])
