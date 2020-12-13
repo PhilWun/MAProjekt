@@ -1,36 +1,49 @@
+from math import pi
+from typing import List
+
 import pennylane as qml
 import torch
+import numpy as np
+from qiskit import QuantumCircuit
+from qiskit.circuit import Parameter
 
+import QNN1
 
-dev = qml.device("default.qubit", wires=2, shots=1000, analytic=False)
+dev = qml.device("default.qubit", wires=3, shots=1000, analytic=False)
+qc = QNN1.create_qiskit_circuit("", 3)
+params: List[Parameter] = list(qc.parameters)
 
 
 @qml.qnode(dev, interface="torch")
-def circuit(phi, theta):
-	qml.RX(phi[0], wires=0)
-	qml.RZ(phi[1], wires=1)
-	qml.CNOT(wires=[0, 1])
-	qml.RX(theta, wires=0)
+def circuit(weights: torch.Tensor):
+	value_dict = {}
 
-	return qml.expval(qml.PauliZ(0))
+	for param, value in zip(params, weights):
+		value_dict[param] = value
 
+	qml.from_qiskit(qc)(value_dict)
 
-def cost(phi, theta):
-	return torch.abs(circuit(phi, theta) - 0.5)**2
+	return qml.expval(qml.PauliZ(0)), qml.expval(qml.PauliZ(1)), qml.expval(qml.PauliZ(2))
 
 
-phi = torch.tensor([0.011, 0.012], requires_grad=True)
-theta = torch.tensor(0.05, requires_grad=True)
+def cost(weights: torch.Tensor, target: torch.Tensor):
+	output = circuit(weights) / 2.0 + 0.5
 
-opt = torch.optim.Adam([phi, theta], lr=0.1)
+	return torch.mean((output - target) ** 2)
+
+
+weights = torch.tensor(np.random.rand(len(params)) * 2 * pi, requires_grad=True)
+target = torch.tensor([0.8, 0.8, 0.8], requires_grad=False)
+
+opt = torch.optim.Adam([weights], lr=0.1)
 steps = 200
 
 
 def closure():
 	opt.zero_grad()
-	loss = cost(phi, theta)
+	loss = cost(weights, target)
 	loss.backward()
-	print(loss)
+	print(loss.item())
 
 	return loss
 
