@@ -18,8 +18,7 @@ def create_qiskit_circuit(param_prefix: str, num_qubits: int) -> QuantumCircuit:
 
 	for i in range(num_qubits - 1):
 		for j in range(num_qubits - 1 - i):
-			inst = _create_two_qubit_gate(param_prefix + "U" + str(idx) + "_")
-			unit_cell.append(inst, [qr[j], qr[j + i + 1]])
+			_add_two_qubit_gate(param_prefix + "U" + str(idx) + "_", unit_cell, qr[j], qr[j + i + 1])
 			idx += 1
 
 	unit_cell.measure(qr, cr)
@@ -27,56 +26,55 @@ def create_qiskit_circuit(param_prefix: str, num_qubits: int) -> QuantumCircuit:
 	return unit_cell
 
 
-def _create_two_qubit_gate(param_prefix: str) -> Instruction:
+def _add_two_qubit_gate(param_prefix: str, qc: QuantumCircuit, q1, q2):
 	"""
+	Adds a general two-qubit gate to the specified quantum circuit.
 	Implements a general two-qubit gate as seen in F. Vatan and C. Williams, “Optimal Quantum Circuits for General
 	Two-Qubit Gates,” Phys. Rev. A, vol. 69, no. 3, p. 032315, Mar. 2004, doi: 10.1103/PhysRevA.69.032315.
 
-	:param param_prefix:
-	:return:
+	:param param_prefix: prefix for the parameters
+	:param qc: the quantum circuit where the gate should be added
+	:param q1: first input qubit for the gate
+	:param q2: second input qubit for the gate
 	"""
-	register = QuantumRegister(2)
-	circ = QuantumCircuit(register, name="U")
 
-	circ.u(
+	qc.u(
 		Parameter(param_prefix + "a1_a"),
 		Parameter(param_prefix + "a1_b"),
 		Parameter(param_prefix + "a1_c"),
-		register[0])
+		q1)
 
-	circ.u(
+	qc.u(
 		Parameter(param_prefix + "a2_a"),
 		Parameter(param_prefix + "a2_b"),
 		Parameter(param_prefix + "a2_c"),
-		register[1]
+		q2
 	)
 
-	circ.cnot(register[1], register[0])
+	qc.cnot(q2, q1)
 
-	circ.rz(Parameter(param_prefix + "t1"), register[0])
-	circ.ry(Parameter(param_prefix + "t2"), register[1])
+	qc.rz(Parameter(param_prefix + "t1"), q1)
+	qc.ry(Parameter(param_prefix + "t2"), q2)
 
-	circ.cnot(register[0], register[1])
+	qc.cnot(q1, q2)
 
-	circ.ry(Parameter(param_prefix + "t3"), register[1])
+	qc.ry(Parameter(param_prefix + "t3"), q2)
 
-	circ.cnot(register[1], register[0])
+	qc.cnot(q2, q1)
 
-	circ.u(
+	qc.u(
 		Parameter(param_prefix + "a3_a"),
 		Parameter(param_prefix + "a3_b"),
 		Parameter(param_prefix + "a3_c"),
-		register[0]
+		q1
 	)
 
-	circ.u(
+	qc.u(
 		Parameter(param_prefix + "a4_a"),
 		Parameter(param_prefix + "a4_b"),
 		Parameter(param_prefix + "a4_c"),
-		register[1]
+		q2
 	)
-
-	return circ.to_instruction()
 
 
 def main():
