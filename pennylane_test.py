@@ -28,7 +28,7 @@ def circuit(weights: torch.Tensor):
 
 
 def cost(weights: torch.Tensor, target: torch.Tensor):
-	output = circuit(weights) / 2.0 + 0.5
+	output = (circuit(weights) - 1) / -2.0  # normalizes the expected values
 
 	return torch.mean((output - target) ** 2)
 
