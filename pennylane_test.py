@@ -4,13 +4,14 @@ from typing import List
 import pennylane as qml
 import torch
 import numpy as np
-from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 
 import QNN1
+import QNN2
+import QNN3
 
 dev = qml.device("default.qubit", wires=3, shots=1000, analytic=False)
-qc = QNN1.create_qiskit_circuit("", 3)
+qc = QNN2.create_qiskit_circuit("", 3)
 params: List[Parameter] = list(qc.parameters)
 
 

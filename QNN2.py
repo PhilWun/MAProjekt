@@ -1,6 +1,6 @@
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import UGate
+from qiskit.circuit.library import UGate, RZGate, RYGate
 
 
 def create_qiskit_circuit(param_prefix: str, num_qubits: int) -> QuantumCircuit:
@@ -33,13 +33,15 @@ def create_qiskit_circuit(param_prefix: str, num_qubits: int) -> QuantumCircuit:
 	for i in range(num_qubits):
 		for j in range(num_qubits):
 			if i != j:
-				controlled_rotation_gate = UGate(
-					Parameter(param_prefix + str(layer_idx + i) + "_" + str(i) + "_" + str(j) + "a"),
-					Parameter(param_prefix + str(layer_idx + i) + "_" + str(i) + "_" + str(j) + "b"),
-					Parameter(param_prefix + str(layer_idx + i) + "_" + str(i) + "_" + str(j) + "c")
-				).control()
-
-				unit_cell.append(controlled_rotation_gate, [qr[i], qr[j]])
+				unit_cell.append(
+					RZGate(Parameter(param_prefix + str(layer_idx + i) + "_" + str(i) + "_" + str(j) + "a")).control(),
+					[qr[i], qr[j]])
+				unit_cell.append(
+					RYGate(Parameter(param_prefix + str(layer_idx + i) + "_" + str(i) + "_" + str(j) + "b")).control(),
+					[qr[i], qr[j]])
+				unit_cell.append(
+					RZGate(Parameter(param_prefix + str(layer_idx + i) + "_" + str(i) + "_" + str(j) + "c")).control(),
+					[qr[i], qr[j]])
 
 	unit_cell.barrier()
 	layer_idx += num_qubits
