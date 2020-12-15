@@ -4,7 +4,7 @@ from typing import List
 import pennylane as qml
 import torch
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
 
 import QNN1
@@ -13,32 +13,44 @@ import QNN3
 
 
 def generate_circuit_func(params: List[Parameter], qc: QuantumCircuit):
-	def func(weights: torch.Tensor):
+	qr = QuantumRegister(3, "q0")
+	input_circ = QuantumCircuit(qr)
+	input_params = [Parameter("input_1"), Parameter("input_2"), Parameter("input_3")]
+	input_circ.rx(input_params[0], qr[0])
+	input_circ.rx(input_params[1], qr[1])
+	input_circ.rx(input_params[2], qr[2])
+
+	combined_circuit = input_circ + qc
+
+	def func(input_values: torch.Tensor, weights: torch.Tensor):
 		value_dict = {}
+
+		for param, value in zip(input_params, input_values):
+			value_dict[param] = value
 
 		for param, value in zip(params, weights):
 			value_dict[param] = value
 
-		qml.from_qiskit(qc)(value_dict)
+		qml.from_qiskit(combined_circuit)(value_dict)
 
 		return qml.expval(qml.PauliZ(0)), qml.expval(qml.PauliZ(1)), qml.expval(qml.PauliZ(2))
 
 	return func
 
 
-def cost(weights: torch.Tensor, target: torch.Tensor, qnode: qml.QNode):
-	output = (qnode(weights) - 1) / -2.0  # normalizes the expected values
+def cost(input_values: torch.Tensor, weights: torch.Tensor, target: torch.Tensor, qnode: qml.QNode):
+	output = (qnode(input_values, weights) - 1) / -2.0  # normalizes the expected values
 
 	return torch.mean((output - target) ** 2)
 
 
 def train_loop(
-		iterations: int, weights: torch.Tensor, target: torch.Tensor, qnode: qml.QNode):
+		iterations: int, input_values: torch.Tensor, weights: torch.Tensor, target: torch.Tensor, qnode: qml.QNode):
 	opt = torch.optim.Adam([weights], lr=0.1)
 
 	for i in range(iterations):
 		opt.zero_grad()
-		loss = cost(weights, target, qnode)
+		loss = cost(input_values, weights, target, qnode)
 		loss.backward()
 		print(loss.item())
 
@@ -50,12 +62,13 @@ def test_training():
 	qc = QNN1.create_qiskit_circuit("", 3)
 	params: List[Parameter] = list(qc.parameters)
 
+	input_values = torch.tensor([pi, pi, pi], requires_grad=False)
 	weights = torch.tensor(np.random.rand(len(params)) * 2 * pi, requires_grad=True)
 	target = torch.tensor([0.8, 0.8, 0.8], requires_grad=False)
 
 	qnode = qml.QNode(generate_circuit_func(params, qc), dev, interface="torch")
 
-	train_loop(100, weights, target, qnode)
+	train_loop(100, input_values, weights, target, qnode)
 
 
 if __name__ == "__main__":
