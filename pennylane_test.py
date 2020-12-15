@@ -40,6 +40,7 @@ def generate_circuit_func(params: List[Parameter], qc: QuantumCircuit):
 
 def cost(input_values: torch.Tensor, weights: torch.Tensor, target: torch.Tensor, qnode: qml.QNode):
 	output = (qnode(input_values, weights) - 1) / -2.0  # normalizes the expected values
+	print(output)
 
 	return torch.mean((output - target) ** 2)
 
@@ -49,12 +50,17 @@ def train_loop(
 	opt = torch.optim.Adam([weights], lr=0.1)
 
 	for i in range(iterations):
-		opt.zero_grad()
-		loss = cost(input_values, weights, target, qnode)
-		loss.backward()
-		print(loss.item())
+		print("iteration", i)
 
-		opt.step()
+		for j in range(input_values.size()[0]):
+			opt.zero_grad()
+			loss = cost(input_values[j], weights, target[j], qnode)
+			loss.backward()
+			print(loss.item())
+
+			opt.step()
+
+		print()
 
 
 def test_training():
@@ -62,9 +68,9 @@ def test_training():
 	qc = QNN1.create_qiskit_circuit("", 3)
 	params: List[Parameter] = list(qc.parameters)
 
-	input_values = torch.tensor([pi, pi, pi], requires_grad=False)
+	input_values = torch.tensor([[0, 0, 0], [pi, pi, pi]], requires_grad=False)
 	weights = torch.tensor(np.random.rand(len(params)) * 2 * pi, requires_grad=True)
-	target = torch.tensor([0.8, 0.8, 0.8], requires_grad=False)
+	target = torch.tensor([[0.4, 0.4, 0.4], [0.8, 0.8, 0.8]], requires_grad=False)
 
 	qnode = qml.QNode(generate_circuit_func(params, qc), dev, interface="torch")
 
