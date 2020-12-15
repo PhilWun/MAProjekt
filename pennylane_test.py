@@ -36,16 +36,13 @@ def train_loop(
 		iterations: int, weights: torch.Tensor, target: torch.Tensor, qnode: qml.QNode):
 	opt = torch.optim.Adam([weights], lr=0.1)
 
-	def closure():
+	for i in range(iterations):
 		opt.zero_grad()
 		loss = cost(weights, target, qnode)
 		loss.backward()
 		print(loss.item())
 
-		return loss.item()
-
-	for i in range(iterations):
-		opt.step(closure)
+		opt.step()
 
 
 def test_training():
