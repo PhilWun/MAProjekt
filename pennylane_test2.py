@@ -5,7 +5,15 @@ import pennylane.numpy as np
 from pennylane import QNode
 
 
-def qnn3_constructor(q_num: int) :
+def qnn3_constructor(q_num: int):
+	"""
+	Implements the circuit from A. Abbas, D. Sutter, C. Zoufal, A. Lucchi, A. Figalli, and S. Woerner, “The power of
+	quantum neural networks,” arXiv:2011.00027 [quant-ph], Oct. 2020, Accessed: Nov. 08, 2020. [Online]. Available:
+	http://arxiv.org/abs/2011.00027.
+
+	:param q_num: number of qubits
+	:return:
+	"""
 	def circuit(input_values: np.tensor, weights: np.tensor) -> List[np.tensor]:
 		# angle encoding of the input
 		for i in range(q_num):
