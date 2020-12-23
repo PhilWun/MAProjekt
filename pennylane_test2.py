@@ -1,12 +1,11 @@
-from typing import List
+from typing import List, Callable, Tuple
 
 import pennylane as qml
 import pennylane.numpy as np
 from pennylane import QNode
 
 
-# TODO: output number of weights
-def qnn1_constructor(q_num: int):
+def qnn1_constructor(q_num: int) -> Tuple[Callable, int]:
 	"""
 	Implements circuit A from J. Romero, J. P. Olson, and A. Aspuru-Guzik, “Quantum autoencoders for efficient compression
 	of quantum data,” Quantum Sci. Technol., vol. 2, no. 4, p. 045001, Dec. 2017, doi: 10.1088/2058-9565/aa8072.
@@ -53,10 +52,16 @@ def qnn1_constructor(q_num: int):
 		qml.U3(weights[9], weights[10], weights[11], wires=q1)
 		qml.U3(weights[12], weights[13], weights[14], wires=q2)
 
-	return circuit
+	param_num = 0
+
+	for i in range(q_num - 1):
+		for j in range(q_num - 1 - i):
+			param_num += 15
+
+	return circuit, param_num
 
 
-def qnn3_constructor(q_num: int):
+def qnn3_constructor(q_num: int) -> Tuple[Callable, int]:
 	"""
 	Implements the circuit from A. Abbas, D. Sutter, C. Zoufal, A. Lucchi, A. Figalli, and S. Woerner, “The power of
 	quantum neural networks,” arXiv:2011.00027 [quant-ph], Oct. 2020, Accessed: Nov. 08, 2020. [Online]. Available:
@@ -85,7 +90,7 @@ def qnn3_constructor(q_num: int):
 
 		return [qml.expval(qml.PauliZ(wires=i)) for i in range(q_num)]
 
-	return circuit
+	return circuit, 2 * q_num
 
 
 def normalize_output(output):
@@ -113,9 +118,10 @@ def training_loop(qnode: QNode, input_values: np.tensor, target: np.tensor, para
 
 def test_qnn1():
 	dev = qml.device('default.qubit', wires=3, shots=1000, analytic=False)
-	qnode = qml.QNode(qnn1_constructor(3), dev)
+	circ_func, param_num = qnn1_constructor(3)
+	qnode = qml.QNode(circ_func, dev)
 
-	params = np.array(np.random.rand(45))
+	params = np.array(np.random.rand(param_num))
 	input_values = np.array([[0, np.pi, 0]], requires_grad=False)
 	target = np.array([[0.4, 0.8, 0.4]], requires_grad=False)
 
