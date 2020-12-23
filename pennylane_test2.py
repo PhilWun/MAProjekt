@@ -88,10 +88,13 @@ def qnn3_constructor(q_num: int):
 	return circuit
 
 
-# TODO: normalize output
+def normalize_output(output):
+	return output / -2.0 + 0.5
+
+
 def cost_func_constructor(qnode: QNode, input_values: np.tensor, target: np.tensor):
 	def cost(weights: np.tensor):
-		result = np.mean((qnode(input_values, weights) - target) ** 2)
+		result = np.mean((normalize_output(qnode(input_values, weights)) - target) ** 2)
 		print(result)
 
 		return result
@@ -114,7 +117,7 @@ def test_qnn1():
 
 	params = np.array(np.random.rand(45))
 	input_values = np.array([[0, np.pi, 0]], requires_grad=False)
-	target = np.array([[-1, 1, -1]], requires_grad=False)
+	target = np.array([[0.4, 0.8, 0.4]], requires_grad=False)
 
 	opt = qml.GradientDescentOptimizer(stepsize=0.1)
 	steps = 100
@@ -122,7 +125,7 @@ def test_qnn1():
 	params = training_loop(qnode, input_values, target, params, opt, steps)
 
 	print(params)
-	print(qnode(input_values[0], params))
+	print(normalize_output(qnode(input_values[0], params)))
 	print(qnode.draw(show_variable_names=True))
 	# print(qnode(input_values[1], params))
 
