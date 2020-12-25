@@ -18,7 +18,7 @@ def qnn1_constructor(q_num: int) -> Tuple[Callable, int]:
 		for i in range(q_num):
 			qml.RX(input_values[i], wires=i)
 
-		idx = 0
+		idx = 0  # current index for the weights
 
 		for i in range(q_num - 1):
 			for j in range(q_num - 1 - i):
@@ -59,6 +59,44 @@ def qnn1_constructor(q_num: int) -> Tuple[Callable, int]:
 			param_num += 15
 
 	return circuit, param_num
+
+
+def qnn2_constructor(q_num: int) -> Tuple[Callable, int]:
+	"""
+	Implements circuit B from J. Romero, J. P. Olson, and A. Aspuru-Guzik, “Quantum autoencoders for efficient compression
+	of quantum data,” Quantum Sci. Technol., vol. 2, no. 4, p. 045001, Dec. 2017, doi: 10.1088/2058-9565/aa8072.
+
+	:param q_num: number of qubits
+	:return:
+	"""
+
+	def circuit(input_values: np.tensor, weights: np.tensor) -> List[np.tensor]:
+		# angle encoding of the input
+		for i in range(q_num):
+			qml.RX(input_values[i], wires=i)
+
+		idx = 0  # current index for the weights
+
+		# layer of single qubit rotations
+		for i in range(q_num):
+			qml.Rot(weights[idx], weights[idx + 1], weights[idx + 2], wires=i)
+			idx += 3
+
+		# layer of controlled single qubit rotations
+		for i in range(q_num):
+			for j in range(q_num):
+				if i != j:
+					qml.CRot(weights[idx], weights[idx + 1], weights[idx + 2], wires=[i, j])
+					idx += 3
+
+		# layer of single qubit rotations
+		for i in range(q_num):
+			qml.Rot(weights[idx], weights[idx + 1], weights[idx + 2], wires=i)
+			idx += 3
+
+		return [qml.expval(qml.PauliZ(wires=i)) for i in range(q_num)]
+
+	return circuit, 2 * q_num + q_num * (q_num - 1)
 
 
 def qnn3_constructor(q_num: int) -> Tuple[Callable, int]:
@@ -122,8 +160,8 @@ def test_qnn1():
 	qnode = qml.QNode(circ_func, dev)
 
 	params = np.array(np.random.rand(param_num))
-	input_values = np.array([[0, np.pi, 0]], requires_grad=False)
-	target = np.array([[0.4, 0.8, 0.4]], requires_grad=False)
+	input_values = np.array([[0, 0, 0]], requires_grad=False)
+	target = np.array([[0.8, 0.8, 0.8]], requires_grad=False)
 
 	opt = qml.GradientDescentOptimizer(stepsize=0.1)
 	steps = 100

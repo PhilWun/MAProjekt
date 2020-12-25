@@ -33,6 +33,7 @@ def create_qiskit_circuit(param_prefix: str, num_qubits: int) -> QuantumCircuit:
 	for i in range(num_qubits):
 		for j in range(num_qubits):
 			if i != j:
+				# TODO: replace with CU3 gate
 				unit_cell.append(
 					RZGate(Parameter(param_prefix + str(layer_idx + i) + "_" + str(i) + "_" + str(j) + "a")).control(),
 					[qr[i], qr[j]])
