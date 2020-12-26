@@ -174,5 +174,15 @@ def test_qnn1():
 	# print(qnode(input_values[1], params))
 
 
+def print_circuit(constructor_func: Callable[[int], Tuple[Callable, int]]):
+	q_num = 3
+	dev = qml.device('default.qubit', wires=q_num, shots=1000, analytic=False)
+	circ_func, param_num = constructor_func(q_num)
+	qnode = qml.QNode(circ_func, dev)
+	qnode(np.zeros(q_num), np.zeros(param_num))
+	print(qnode.draw())
+
+
 if __name__ == "__main__":
-	test_qnn1()
+	# test_qnn1()
+	print_circuit(qnn1_constructor)
