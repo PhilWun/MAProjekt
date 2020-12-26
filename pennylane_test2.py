@@ -96,7 +96,7 @@ def qnn2_constructor(q_num: int) -> Tuple[Callable, int]:
 
 		return [qml.expval(qml.PauliZ(wires=i)) for i in range(q_num)]
 
-	return circuit, 2 * q_num + q_num * (q_num - 1)
+	return circuit, (2 * q_num + q_num * (q_num - 1)) * 3
 
 
 def qnn3_constructor(q_num: int) -> Tuple[Callable, int]:
@@ -185,4 +185,4 @@ def print_circuit(constructor_func: Callable[[int], Tuple[Callable, int]]):
 
 if __name__ == "__main__":
 	# test_qnn1()
-	print_circuit(qnn1_constructor)
+	print_circuit(qnn2_constructor)
