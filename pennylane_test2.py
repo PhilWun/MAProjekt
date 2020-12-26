@@ -37,8 +37,8 @@ def qnn1_constructor(q_num: int) -> Tuple[Callable, int]:
 		:param q2: second input qubit for the gate
 		"""
 
-		qml.U3(weights[0], weights[1], weights[2], wires=q1)
-		qml.U3(weights[3], weights[4], weights[5], wires=q2)
+		qml.Rot(weights[0], weights[1], weights[2], wires=q1)
+		qml.Rot(weights[3], weights[4], weights[5], wires=q2)
 
 		qml.CNOT(wires=[q2, q1])
 
@@ -49,8 +49,8 @@ def qnn1_constructor(q_num: int) -> Tuple[Callable, int]:
 		qml.RY(weights[8], wires=q2)
 		qml.CNOT(wires=[q2, q1])
 
-		qml.U3(weights[9], weights[10], weights[11], wires=q1)
-		qml.U3(weights[12], weights[13], weights[14], wires=q2)
+		qml.Rot(weights[9], weights[10], weights[11], wires=q1)
+		qml.Rot(weights[12], weights[13], weights[14], wires=q2)
 
 	param_num = 0
 
