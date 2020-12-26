@@ -8,8 +8,6 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
 
 import QNN1
-import QNN2
-import QNN3
 
 
 def generate_circuit_func(params: List[Parameter], qc: QuantumCircuit):

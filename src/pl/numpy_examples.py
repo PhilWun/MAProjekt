@@ -1,10 +1,10 @@
-from typing import List, Callable, Tuple
+from typing import Callable, Tuple
 
 import pennylane as qml
 import pennylane.numpy as np
 from pennylane import QNode
 
-from pl import QNN1, QNN2
+from pl import QNN1
 
 
 def normalize_output(output):

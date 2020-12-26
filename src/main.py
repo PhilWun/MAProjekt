@@ -2,14 +2,11 @@ from typing import List, Callable, Optional
 
 import numpy as np
 from qiskit import QuantumCircuit, transpile, assemble
-from qiskit.aqua.components.optimizers import Optimizer, ADAM, CG, COBYLA, L_BFGS_B, GSLS, NELDER_MEAD, NFT, P_BFGS, \
-	POWELL, SLSQP, SPSA, TNC
+from qiskit.aqua.components.optimizers import Optimizer, ADAM, CG, COBYLA, L_BFGS_B, GSLS, NELDER_MEAD, NFT, POWELL, SLSQP, SPSA, TNC
 from qiskit.providers import BaseBackend
 from qiskit.providers.aer import QasmSimulator, AerJob
 
 import QNN1
-import QNN2
-import QNN3
 from tools import train_circuit, get_expected_values
 
 
