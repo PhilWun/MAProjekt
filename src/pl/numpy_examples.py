@@ -41,7 +41,7 @@ def training_loop(qnode: QNode, input_values: np.tensor, target: np.tensor, para
 	return params
 
 
-def test_qnn(q_num: int, qnn_name: str, optimizer, steps: int):
+def train_qnn(q_num: int, qnn_name: str, optimizer, steps: int):
 	dev = qml.device('default.qubit', wires=q_num, shots=1000, analytic=False)
 
 	# choose the QNN depending on the argument
@@ -104,7 +104,7 @@ def cli():
 	elif args.optimizer == "Rotosolve":
 		optimizer = qml.RotosolveOptimizer()
 
-	test_qnn(args.qnum, args.qnn, optimizer, args.steps)
+	train_qnn(args.qnum, args.qnn, optimizer, args.steps)
 
 
 if __name__ == "__main__":
