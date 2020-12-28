@@ -7,7 +7,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.aer import QasmSimulator, AerJob
 
 import QNN1
-from tools import train_circuit, get_expected_values
+from src.qk.tools import train_circuit, get_expected_values
 
 
 def execute_optimizer(

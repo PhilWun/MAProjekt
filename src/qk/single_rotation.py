@@ -3,7 +3,7 @@ from typing import Callable
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute
 import numpy as np
 
-from tools import get_expected_values
+from src.qk.tools import get_expected_values
 
 
 def create_simple_circuit(params):
