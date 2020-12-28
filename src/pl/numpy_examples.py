@@ -54,7 +54,6 @@ def test_qnn(q_num: int, qnn_name: str, optimizer, steps: int):
 	else:
 		raise ValueError()
 
-	mlflow.log_param("QNN", qnn_name)
 	qnode = qml.QNode(circ_func, dev)
 
 	# create the parameter and data arrays

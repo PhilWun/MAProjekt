@@ -5,7 +5,7 @@ conda_env: conda.yaml
 entry_points:
   pennylane_numpy:
     parameters:
-      qnn: {type: string, default: "QNN1"}
+      qnn: string
       qnum: {type: float, default: 3}
       optimizer: {type: string, default: "Adam"}
       stepsize: {type: float, default: 0.1}
