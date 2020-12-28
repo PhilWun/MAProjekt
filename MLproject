@@ -1,0 +1,18 @@
+name: MA Projekt
+
+conda_env: conda.yaml
+
+entry_points:
+  pennylane_numpy:
+    parameters:
+      qnn: {type: string, default: "QNN1"}
+      qnum: {type: float, default: 3}
+      optimizer: {type: string, default: "Adam"}
+      stepsize: {type: float, default: 0.1}
+      eps: {type: float, default: 1e-8}
+      beta1: {type: float, default: 0.9}
+      beta2: {type: float, default: 0.99}
+      momentum: {type: float, default: 0.9}
+      decay: {type: float, default: 0.9}
+      steps: {type: float, default: 100}
+    command: "python src/pl/numpy_examples.py --qnn {qnn} --qnum {qnum} --optimizer {optimizer} --stepsize {stepsize} --eps {eps} --beta1 {beta1} --beta2 {beta2} --momentum {momentum} --decay {decay} --steps {steps}"

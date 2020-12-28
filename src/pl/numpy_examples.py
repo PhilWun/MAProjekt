@@ -1,3 +1,4 @@
+import argparse
 from typing import Callable, Tuple
 
 import mlflow
@@ -6,7 +7,9 @@ import pennylane as qml
 import pennylane.numpy as np
 from pennylane import QNode
 
-from pl import QNN1, QNN2, QNN3
+import QNN1
+import QNN2
+import QNN3
 
 
 def normalize_output(output):
@@ -39,8 +42,6 @@ def training_loop(qnode: QNode, input_values: np.tensor, target: np.tensor, para
 
 
 def test_qnn(q_num: int, qnn_name: str, optimizer, steps: int):
-	mlflow.log_param("Number of qubits", q_num)
-	mlflow.log_param("Number of steps", steps)
 	dev = qml.device('default.qubit', wires=q_num, shots=1000, analytic=False)
 
 	# choose the QNN depending on the argument
@@ -61,35 +62,6 @@ def test_qnn(q_num: int, qnn_name: str, optimizer, steps: int):
 	input_values = np.array([[0] * q_num], requires_grad=False)
 	target = np.array([[0.8] * q_num], requires_grad=False)
 
-	if type(optimizer) == qml.AdagradOptimizer:
-		mlflow.log_param("Optimizer", "AdagradOptimizer")
-		mlflow.log_param("stepsize", optimizer._stepsize)
-		mlflow.log_param("eps", optimizer.eps)
-	if type(optimizer) == qml.AdamOptimizer:
-		mlflow.log_param("Optimizer", "AdamOptimizer")
-		mlflow.log_param("stepsize", optimizer._stepsize)
-		mlflow.log_param("beta1", optimizer.beta1)
-		mlflow.log_param("beta2", optimizer.beta2)
-		mlflow.log_param("eps", optimizer.eps)
-	if type(optimizer) == qml.GradientDescentOptimizer:
-		mlflow.log_param("Optimizer", "GradientDescentOptimizer")
-		mlflow.log_param("stepsize", optimizer._stepsize)
-	if type(optimizer) == qml.MomentumOptimizer:
-		mlflow.log_param("Optimizer", "MomentumOptimizer")
-		mlflow.log_param("stepsize", optimizer._stepsize)
-		mlflow.log_param("momentum", optimizer.momentum)
-	if type(optimizer) == qml.NesterovMomentumOptimizer:
-		mlflow.log_param("Optimizer", "NesterovMomentumOptimizer")
-		mlflow.log_param("stepsize", optimizer._stepsize)
-		mlflow.log_param("momentum", optimizer.momentum)
-	if type(optimizer) == qml.RMSPropOptimizer:
-		mlflow.log_param("Optimizer", "RMSPropOptimizer")
-		mlflow.log_param("stepsize", optimizer._stepsize)
-		mlflow.log_param("decay", optimizer.decay)
-		mlflow.log_param("eps", optimizer.eps)
-	if type(optimizer) == qml.RotosolveOptimizer:
-		mlflow.log_param("Optimizer", "RotosolveOptimizer")
-
 	training_loop(qnode, input_values, target, params, optimizer, steps)
 
 
@@ -103,6 +75,37 @@ def print_circuit(constructor_func: Callable[[int], Tuple[Callable, int]]):
 
 
 if __name__ == "__main__":
-	optimizer = qml.AdamOptimizer(0.1)
-	test_qnn(3, "QNN1", optimizer, 100)
+	# optimizer = qml.AdamOptimizer(0.1)
+	# test_qnn(3, "QNN1", optimizer, 100)
 	# print_circuit(QNN2.constructor)
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--qnn", type=str)
+	parser.add_argument("--qnum", type=int)
+	parser.add_argument("--optimizer", type=str)
+	parser.add_argument("--stepsize", type=float)
+	parser.add_argument("--eps", type=float)
+	parser.add_argument("--beta1", type=float)
+	parser.add_argument("--beta2", type=float)
+	parser.add_argument("--momentum", type=float)
+	parser.add_argument("--decay", type=float)
+	parser.add_argument("--steps", type=int)
+
+	args = parser.parse_args()
+	optimizer = None
+
+	if args.optimizer == "Adagrad":
+		optimizer = qml.AdagradOptimizer(args.stepsize, args.eps)
+	elif args.optimizer == "Adam":
+		optimizer = qml.AdamOptimizer(args.stepsize, args.beta1, args.beta2, args.eps)
+	elif args.optimizer == "GradientDescent":
+		optimizer = qml.GradientDescentOptimizer(args.stepsize)
+	elif args.optimizer == "Momentum":
+		optimizer = qml.MomentumOptimizer(args.stepsize, args.momentum)
+	elif args.optimizer == "NesterovMomentum":
+		optimizer = qml.NesterovMomentumOptimizer(args.stepsize, args.momentum)
+	elif args.optimizer == "RMSProp":
+		optimizer = qml.RMSPropOptimizer(args.stepsize, args.decay, args.eps)
+	elif args.optimizer == "Rotosolve":
+		optimizer = qml.RotosolveOptimizer()
+
+	test_qnn(args.qnum, args.qnn, optimizer, args.steps)
