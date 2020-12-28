@@ -73,10 +73,7 @@ def print_circuit(constructor_func: Callable[[int], Tuple[Callable, int]]):
 	print(qnode.draw())
 
 
-if __name__ == "__main__":
-	# optimizer = qml.AdamOptimizer(0.1)
-	# test_qnn(3, "QNN1", optimizer, 100)
-	# print_circuit(QNN2.constructor)
+def cli():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--qnn", type=str)
 	parser.add_argument("--qnum", type=int)
@@ -108,3 +105,10 @@ if __name__ == "__main__":
 		optimizer = qml.RotosolveOptimizer()
 
 	test_qnn(args.qnum, args.qnn, optimizer, args.steps)
+
+
+if __name__ == "__main__":
+	# optimizer = qml.AdamOptimizer(0.1)
+	# test_qnn(3, "QNN1", optimizer, 100)
+	# print_circuit(QNN2.constructor)
+	cli()
