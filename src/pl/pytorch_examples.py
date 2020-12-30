@@ -5,7 +5,7 @@ import torch
 import QNN1
 
 
-def main():
+def example_train_qnn1():
     q_num = 3
     dev = qml.device('default.qubit', wires=q_num, shots=1000, analytic=False)
     circ_func, param_num = QNN1.constructor(q_num)
@@ -32,4 +32,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    example_train_qnn1()
