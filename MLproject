@@ -16,3 +16,38 @@ entry_points:
       decay: {type: float, default: 0.9}
       steps: {type: float, default: 100}
     command: "python src/pl/numpy_examples.py --qnn {qnn} --qnum {qnum} --optimizer {optimizer} --stepsize {stepsize} --eps {eps} --beta1 {beta1} --beta2 {beta2} --momentum {momentum} --decay {decay} --steps {steps}"
+  qiskit:
+    parameters:
+      qnn: string
+      qnum: {type: float, default: 3}
+      optimizer: {type: string, default: "ADAM"}
+      maxiter: {type: float, default: 100}
+      tol: {type: float, default: 1e-6}
+      lr: {type: float, default: 0.1}
+      beta1: {type: float, default: 0.9}
+      beta2: {type: float, default: 0.99}
+      noise_factor: {type: float, default: 1e-8}
+      eps: {type: float, default: 0.1}
+      gtol: {type: float, default: }
+      rhobeg: {type: float, default: }
+      maxfun: {type: float, default: 10000}
+      factr: {type: float, default: }
+      sampling_radius: {type: float, default: }
+      sampling_size_factor: {type: float, default: }
+      initial_step_size: {type: float, default: }
+      min_step_size: {type: float, default: }
+      step_size_multiplier: {type: float, default: }
+      armijo_parameter: {type: float, default: }
+      max_failed_rejection_sampling: {type: float, default: }
+      xtol: {type: float, default: }
+      adaptive: {type: float, default: }
+      reset_interval: {type: float, default: }
+      ftol: {type: float, default: }
+      c0: {type: float, default: }
+      c1: {type: float, default: }
+      c2: {type: float, default: }
+      c3: {type: float, default: }
+      c4: {type: float, default: }
+      skip_calibration: {type: float, default: }
+      accuracy: {type: float, default: }
+    command: "python src/qk/main.py --qnn {qnn} --qnum {qnum} --optimizer {optimizer} --maxiter {maxiter} --tol {tol} --lr {lr} --beta1 {beta1} --beta2 {beta2} --noise_factor {noise_factor} --eps {eps} --gtol {gtol} --rhobeg {rhobeg} --maxfun {maxfun} --factr {factr} --sampling_radius {sampling_radius} --sampling_size_factor {sampling_size_factor} --initial_step_size {initial_step_size} --min_step_size {min_step_size} --step_size_multiplier {step_size_multiplier} --armijo_parameter {armijo_parameter} --max_failed_rejection_sampling {max_failed_rejection_sampling} --xtol {xtol} --adaptive {adaptive} --reset_interval {reset_interval} --ftol {ftol} --c0 {c0} --c1 {c1} --c2 {c2} --c3 {c3} --c4 {c4} --skip_calibration {skip_calibration} --accuracy {accuracy}"
