@@ -5,10 +5,6 @@ import torch
 import QNN1
 
 
-def cost(circuit: qml.QNode, input_data: torch.Tensor, target: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
-    return torch.mean((circuit(input_data, weights) - target) ** 2)
-
-
 def main():
     q_num = 3
     dev = qml.device('default.qubit', wires=q_num, shots=1000, analytic=False)
