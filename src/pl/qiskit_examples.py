@@ -7,7 +7,7 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
 
-from ..qk import QNN1
+from src.qk import QNN1
 
 
 def generate_circuit_func(params: List[Parameter], qc: QuantumCircuit):
