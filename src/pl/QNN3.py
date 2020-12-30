@@ -13,10 +13,10 @@ def constructor(q_num: int) -> Tuple[Callable, int]:
 	:param q_num: number of qubits
 	:return: function that constructs the circuit
 	"""
-	def circuit(input_values: np.tensor, weights: np.tensor) -> List[np.tensor]:
+	def circuit(inputs: np.tensor, weights: np.tensor) -> List[np.tensor]:
 		# angle encoding of the input
 		for i in range(q_num):
-			qml.RX(input_values[i], wires=i)
+			qml.RX(inputs[i], wires=i)
 
 		# RY layer
 		for i in range(q_num):
