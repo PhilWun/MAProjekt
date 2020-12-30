@@ -8,7 +8,7 @@ import QNN1
 
 def create_qlayer(constructor_func: Callable, q_num: int) -> qml.qnn.TorchLayer:
     dev = qml.device('default.qubit', wires=q_num, shots=1000, analytic=False)
-    circ_func, param_num = QNN1.constructor(q_num)
+    circ_func, param_num = constructor_func(q_num)
     qnode = qml.QNode(circ_func, dev, interface="torch")
 
     weight_shapes = {"weights": param_num}
