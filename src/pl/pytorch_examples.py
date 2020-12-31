@@ -1,6 +1,5 @@
 import argparse
-from math import pi
-from typing import Callable, Tuple
+from typing import Callable
 
 import mlflow
 import pennylane as qml
