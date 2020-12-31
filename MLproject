@@ -5,7 +5,7 @@ conda_env: conda.yaml
 entry_points:
   pennylane_numpy:
     parameters:
-      qnn: string
+      qnn: {type: string, default: "QNN1"}
       qnum: {type: float, default: 3}
       optimizer: {type: string, default: "Adam"}
       stepsize: {type: float, default: 0.1}
@@ -16,9 +16,41 @@ entry_points:
       decay: {type: float, default: 0.9}
       steps: {type: float, default: 100}
     command: "python src/pl/numpy_examples.py --qnn {qnn} --qnum {qnum} --optimizer {optimizer} --stepsize {stepsize} --eps {eps} --beta1 {beta1} --beta2 {beta2} --momentum {momentum} --decay {decay} --steps {steps}"
+  pennylane_pytorch:
+    parameters:
+      qnn: {type: string, default: "QNN1"}
+      qnum: {type: float, default: 3}
+      steps: {type: float, default: 100}
+      optimizer: {type: string, default: "Adam"}
+      lr: {type: float, default: 0.1}
+      rho: {type: float, default: 0.9}
+      eps: {type: float, default: 1e-6}
+      weight_decay: {type: float, default: 0}
+      lr_decay: {type: float, default: 0}
+      initial_accumulator_value: {type: float, default: 0}
+      beta1: {type: float, default: 0.9}
+      beta2: {type: float, default: 0.999}
+      amsgrad: {type: float, default: 0}
+      lambd: {type: float, default: 0.0001}
+      alpha: {type: float, default: 0.75}
+      t0: {type: float, default: 1000000}
+      max_iter: {type: float, default: 20}
+      max_eval: {type: float, default: 25}
+      tolerance_grad: {type: float, default: 1e-7}
+      tolerance_change: {type: float, default: 1e-9}
+      history_size: {type: float, default: 100}
+      momentum: {type: float, default: 0}
+      centered: {type: float, default: 0}
+      eta1: {type: float, default: 0.5}
+      eta2: {type: float, default: 1.2}
+      step_size1: {type: float, default: 1e-6}
+      step_size2: {type: float, default: 50}
+      dampening: {type: float, default: 0}
+      nesterov: {type: float, default: 0}
+    command: "python src/pl/pytorch_examples.py --qnn {qnn} --qnum {qnum} --steps {steps} --optimizer {optimizer} --lr {lr} --rho {rho} --eps {eps} --weight_decay {weight_decay} --lr_decay {lr_decay} --initial_accumulator_value {initial_accumulator_value} --beta1 {beta1} --beta2 {beta2} --amsgrad {amsgrad} --lambd {lambd} --alpha {alpha} --t0 {t0} --max_iter {max_iter} --max_eval {max_eval} --tolerance_grad {tolerance_grad} --tolerance_change {tolerance_change} --history_size {history_size} --momentum {momentum} --centered {centered} --eta1 {eta1} --eta2 {eta2} --step_size1 {step_size1} --step_size2 {step_size2} --dampening {dampening} --nesterov {nesterov}"
   qiskit:
     parameters:
-      qnn: string
+      qnn: {type: string, default: "QNN1"}
       qnum: {type: float, default: 3}
       optimizer: {type: string, default: "ADAM"}
       maxiter: {type: float, default: 100}
