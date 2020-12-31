@@ -1,8 +1,10 @@
 import gzip
+from typing import Tuple
+
 import numpy as np
 
 
-def load_dataset():
+def load_dataset() -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 	"""
 	Loads the fashion-mnist dataset. https://github.com/zalandoresearch/fashion-mnist
 
@@ -19,7 +21,7 @@ def load_dataset():
 	return train_images, train_labels, test_images, test_labels
 
 
-def _load_images_labels(images_path: str, labels_path: str):
+def _load_images_labels(images_path: str, labels_path: str) -> Tuple[np.ndarray, np.ndarray]:
 	images_raw = gzip.open(images_path, 'rb')
 	images = np.frombuffer(images_raw.read(), dtype=np.uint8, offset=16).reshape(-1, 784)
 	labels_raw = gzip.open(labels_path, 'rb')
