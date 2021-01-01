@@ -1,9 +1,13 @@
 import argparse
+import pickle
 from typing import Callable
 
 import mlflow
+import pandas as pd
 import pennylane as qml
 import torch
+from mlflow.pyfunc import PythonModel, PythonModelContext
+
 import QNN1
 import QNN2
 import QNN3
@@ -33,6 +37,23 @@ def training_loop(
 		mlflow.log_metric("Training MSE", loss.item(), i)
 
 
+class HybridModel(PythonModel):
+	def __init__(self, q_num: int):
+		self.q_num = q_num
+
+	def predict(self, context: PythonModelContext, model_input: pd.DataFrame):
+		qlayer = create_qlayer(QNN1.constructor, self.q_num)
+
+		model = torch.nn.Sequential(
+			qlayer
+		)
+
+		sd = pickle.load(open(context.artifacts["circuit_parameters"], "rb"))
+		model.load_state_dict(sd)
+
+		return model(torch.tensor(model_input.to_numpy()))
+
+
 def example_train_qnn1():
 	q_num = 3
 	qlayer = create_qlayer(QNN1.constructor, q_num)
@@ -45,7 +66,24 @@ def example_train_qnn1():
 	target = torch.tensor([0.8] * q_num, requires_grad=False)
 	opt = torch.optim.Adam(model.parameters(), lr=0.1)
 
-	training_loop(model, inputs, target, opt, 100)
+	training_loop(model, inputs, target, opt, 10)
+
+	sd = model.state_dict()
+	pickle.dump(sd, open("state_dict.pickle", mode="wb"))
+	mlflow.log_artifact("state_dict.pickle")
+	hybrid_model = HybridModel(q_num)
+	mlflow.pyfunc.save_model(
+		"hybrid_model",
+		python_model=hybrid_model,
+		conda_env="../../conda.yaml",
+		artifacts={"circuit_parameters": "runs:/" + mlflow.active_run().info.run_id + "/state_dict.pickle"})
+
+
+def example_load_model():
+	q_num = 3
+	model = mlflow.pyfunc.load_model("hybrid_model")
+	inputs = pd.DataFrame([[0.0] * q_num])
+	print(model.predict(inputs))
 
 
 def cli():
@@ -158,4 +196,5 @@ def cli():
 
 if __name__ == "__main__":
 	# example_train_qnn1()
-	cli()
+	example_load_model()
+	# cli()
