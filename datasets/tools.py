@@ -10,6 +10,7 @@ class ColumnType(Enum):
 	NUMERIC = 0
 	CATEGORICAL = 1
 	LABEL = 2
+	DISCARD = 3
 
 
 def load_csv(file: str, column_types: List[ColumnType]) -> Tuple[np.ndarray, np.ndarray]:
@@ -22,7 +23,7 @@ def load_csv(file: str, column_types: List[ColumnType]) -> Tuple[np.ndarray, np.
 		column_data = np_data[:, i].reshape((-1, 1))
 
 		if ct == ColumnType.NUMERIC:
-			scaler = preprocessing.MinMaxScaler()
+			scaler = preprocessing.StandardScaler()
 			preprocessed_columns.append(scaler.fit_transform(column_data))
 		elif ct == ColumnType.CATEGORICAL:
 			enc = preprocessing.OneHotEncoder(sparse=False)
@@ -30,6 +31,8 @@ def load_csv(file: str, column_types: List[ColumnType]) -> Tuple[np.ndarray, np.
 		elif ct == ColumnType.LABEL:
 			enc = preprocessing.OrdinalEncoder()
 			labels = enc.fit_transform(column_data).reshape((-1,))
+		elif ct == ColumnType.DISCARD:
+			pass
 		else:
 			raise ValueError()
 
