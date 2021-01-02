@@ -1,4 +1,5 @@
 import argparse
+import os
 import pickle
 from typing import Callable
 
@@ -66,7 +67,7 @@ def example_train_qnn1():
 	target = torch.tensor([0.8] * q_num, requires_grad=False)
 	opt = torch.optim.Adam(model.parameters(), lr=0.1)
 
-	training_loop(model, inputs, target, opt, 10)
+	training_loop(model, inputs, target, opt, 100)
 
 	sd = model.state_dict()
 	pickle.dump(sd, open("state_dict.pickle", mode="wb"))
@@ -75,7 +76,13 @@ def example_train_qnn1():
 	mlflow.pyfunc.save_model(
 		"hybrid_model",
 		python_model=hybrid_model,
-		conda_env="../../conda.yaml",
+		conda_env="conda.yaml",
+		code_path=[
+			"src/pl/QNN1.py",
+			"src/pl/QNN2.py",
+			"src/pl/QNN3.py",
+			"src/pl/TwoQubitGate.py",
+		],
 		artifacts={"circuit_parameters": "runs:/" + mlflow.active_run().info.run_id + "/state_dict.pickle"})
 
 
@@ -195,6 +202,6 @@ def cli():
 
 
 if __name__ == "__main__":
-	# example_train_qnn1()
-	example_load_model()
+	example_train_qnn1()
+	# example_load_model()
 	# cli()
