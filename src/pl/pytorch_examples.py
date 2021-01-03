@@ -1,5 +1,4 @@
 import argparse
-import os
 import pickle
 from typing import Callable
 
@@ -38,19 +37,42 @@ def training_loop(
 		mlflow.log_metric("Training MSE", loss.item(), i)
 
 
+qnn_constructors = {
+	"QNN1": QNN1.constructor,
+	"QNN2": QNN2.constructor,
+	"QNN3": QNN3.constructor,
+}
+
+
+class QuantumModel(torch.nn.Module):
+	def __init__(self, q_num: int, qnn_name: str, embedding_size: int):
+		super(QuantumModel, self).__init__()
+
+		self.q_num = q_num
+		self.embedding_size = embedding_size
+		self.qnn_name = qnn_name
+		self.q_layer1 = create_qlayer(qnn_constructors[self.qnn_name], q_num)
+		self.q_layer2 = create_qlayer(qnn_constructors[self.qnn_name], q_num)
+
+	def forward(self, x: torch.Tensor):
+		embedding = self.q_layer1(x)
+		embedding[:, 0:self.q_num - self.embedding_size] = 0
+		reconstruction = self.q_layer2(embedding)
+
+		return reconstruction
+
+
 class MLFModel(PythonModel):
 	"""
 	MLflow model to store a trained model in a folder.
 	"""
-	def __init__(self, q_num: int):
-		self.q_num = q_num
+	def __init__(self, q_model: QuantumModel):
+		self.q_num = q_model.q_num
+		self.qnn_name = q_model.qnn_name
+		self.embedding_size = q_model.embedding_size
 
 	def predict(self, context: PythonModelContext, model_input: pd.DataFrame):
-		qlayer = create_qlayer(QNN1.constructor, self.q_num)
-
-		model = torch.nn.Sequential(
-			qlayer
-		)
+		model = QuantumModel(self.q_num, self.qnn_name, self.embedding_size)
 
 		sd = pickle.load(open(context.artifacts["circuit_parameters"], "rb"))
 		model.load_state_dict(sd)
@@ -116,7 +138,7 @@ def example_load_model():
 
 def cli():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--qnn", type=str)
+	parser.add_argument("--qnn", type=str)  # TODO: add option to choose between normal and autoencoder, add embedding size as argument
 	parser.add_argument("--qnum", type=int)
 	parser.add_argument("--steps", type=int)
 	parser.add_argument("--optimizer", type=str)
@@ -138,7 +160,7 @@ def cli():
 	parser.add_argument("--tolerance_change", type=float)
 	parser.add_argument("--history_size", type=int)
 	parser.add_argument("--momentum", type=float)
-	parser.add_argument("--centered", type=int)
+	parser.add_argument("--centered", type=int)  # 0: false, 1: true
 	parser.add_argument("--eta1", type=float)
 	parser.add_argument("--eta2", type=float)
 	parser.add_argument("--step_size1", type=float)
@@ -148,53 +170,40 @@ def cli():
 
 	args = parser.parse_args()
 
-	qnn_name = args.qnn
-	qnum = args.qnum
-	steps = args.steps
-	optimizer_name = args.optimizer
-	lr = args.lr
-	rho = args.rho
-	eps = args.eps
-	weight_decay = args.weight_decay
-	lr_decay = args.lr_decay
-	initial_accumulator_value = args.initial_accumulator_value
-	beta1 = args.beta1
-	beta2 = args.beta2
-	amsgrad = bool(args.amsgrad)
-	lambd = args.lambd
-	alpha = args.alpha
-	t0 = args.t0
-	max_iter = args.max_iter
-	max_eval = args.max_eval
-	tolerance_grad = args.tolerance_grad
-	tolerance_change = args.tolerance_change
-	history_size = args.history_size
-	momentum = args.momentum
-	centered = args.centered
-	eta1 = args.eta1
-	eta2 = args.eta2
-	step_size1 = args.step_size1
-	step_size2 = args.step_size2
-	dampening = args.dampening
-	nesterov = bool(args.nesterov)
+	qnn_name: str = args.qnn
+	qnum: int = args.qnum
+	steps: int = args.steps
+	optimizer_name: str = args.optimizer
+	lr: float = args.lr
+	rho: float = args.rho
+	eps: float = args.eps
+	weight_decay: float = args.weight_decay
+	lr_decay: float = args.lr_decay
+	initial_accumulator_value: float = args.initial_accumulator_value
+	beta1: float = args.beta1
+	beta2: float = args.beta2
+	amsgrad: bool = bool(args.amsgrad)
+	lambd: float = args.lambd
+	alpha: float = args.alpha
+	t0: float = args.t0
+	max_iter: int = args.max_iter
+	max_eval: int = args.max_eval
+	tolerance_grad: float = args.tolerance_grad
+	tolerance_change: float = args.tolerance_change
+	history_size: int = args.history_size
+	momentum: float = args.momentum
+	centered: bool = bool(args.centered)
+	eta1: float = args.eta1
+	eta2: float = args.eta2
+	step_size1: float = args.step_size1
+	step_size2: float = args.step_size2
+	dampening: float = args.dampening
+	nesterov: bool = bool(args.nesterov)
 
-	if qnn_name == "QNN1":
-		constructor_func = QNN1.constructor
-	elif qnn_name == "QNN2":
-		constructor_func = QNN2.constructor
-	elif qnn_name == "QNN3":
-		constructor_func = QNN3.constructor
-	else:
-		raise ValueError()
+	model = QuantumModel(3, qnn_name, 3)  # TODO: set embedding size
 
-	qlayer = create_qlayer(constructor_func, qnum)
-
-	model = torch.nn.Sequential(
-		qlayer
-	)
-
-	inputs = torch.tensor([0.0] * qnum, requires_grad=False)
-	target = torch.tensor([0.8] * qnum, requires_grad=False)
+	inputs = torch.tensor([[0.0] * qnum], requires_grad=False)
+	target = torch.tensor([[0.8] * qnum], requires_grad=False)
 
 	optimizer = None
 
@@ -220,7 +229,7 @@ def cli():
 		optimizer = torch.optim.SGD(model.parameters(), lr, momentum, dampening, weight_decay, nesterov)
 
 	training_loop(model, inputs, target, optimizer, steps)
-	mlf_model = MLFModel(qnum)
+	mlf_model = MLFModel(model)
 	log_model(model, mlf_model)
 
 
