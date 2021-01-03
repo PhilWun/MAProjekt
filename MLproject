@@ -19,6 +19,8 @@ entry_points:
   pennylane_pytorch:
     parameters:
       qnn: {type: string, default: "QNN1"}
+      autoencoder: {type: float, default: 0}
+      embedding_size: {type: float, default: 2}
       qnum: {type: float, default: 3}
       steps: {type: float, default: 100}
       optimizer: {type: string, default: "Adam"}
@@ -47,7 +49,7 @@ entry_points:
       step_size2: {type: float, default: 50}
       dampening: {type: float, default: 0}
       nesterov: {type: float, default: 0}
-    command: "python src/pl/pytorch_examples.py --qnn {qnn} --qnum {qnum} --steps {steps} --optimizer {optimizer} --lr {lr} --rho {rho} --eps {eps} --weight_decay {weight_decay} --lr_decay {lr_decay} --initial_accumulator_value {initial_accumulator_value} --beta1 {beta1} --beta2 {beta2} --amsgrad {amsgrad} --lambd {lambd} --alpha {alpha} --t0 {t0} --max_iter {max_iter} --max_eval {max_eval} --tolerance_grad {tolerance_grad} --tolerance_change {tolerance_change} --history_size {history_size} --momentum {momentum} --centered {centered} --eta1 {eta1} --eta2 {eta2} --step_size1 {step_size1} --step_size2 {step_size2} --dampening {dampening} --nesterov {nesterov}"
+    command: "python src/pl/pytorch_examples.py --qnn {qnn} --autoencoder {autoencoder} --embedding_size {embedding_size} --qnum {qnum} --steps {steps} --optimizer {optimizer} --lr {lr} --rho {rho} --eps {eps} --weight_decay {weight_decay} --lr_decay {lr_decay} --initial_accumulator_value {initial_accumulator_value} --beta1 {beta1} --beta2 {beta2} --amsgrad {amsgrad} --lambd {lambd} --alpha {alpha} --t0 {t0} --max_iter {max_iter} --max_eval {max_eval} --tolerance_grad {tolerance_grad} --tolerance_change {tolerance_change} --history_size {history_size} --momentum {momentum} --centered {centered} --eta1 {eta1} --eta2 {eta2} --step_size1 {step_size1} --step_size2 {step_size2} --dampening {dampening} --nesterov {nesterov}"
   qiskit:
     parameters:
       qnn: {type: string, default: "QNN1"}

@@ -45,21 +45,29 @@ qnn_constructors = {
 
 
 class QuantumModel(torch.nn.Module):
-	def __init__(self, q_num: int, qnn_name: str, embedding_size: int):
+	def __init__(self, q_num: int, qnn_name: str, autoencoder: bool, embedding_size: int):
 		super(QuantumModel, self).__init__()
 
 		self.q_num = q_num
-		self.embedding_size = embedding_size
 		self.qnn_name = qnn_name
-		self.q_layer1 = create_qlayer(qnn_constructors[self.qnn_name], q_num)
-		self.q_layer2 = create_qlayer(qnn_constructors[self.qnn_name], q_num)
+		self.autoencoder = autoencoder
+		self.embedding_size = embedding_size
+
+		self.q_layer1 = create_qlayer(qnn_constructors[self.qnn_name], self.q_num)
+
+		if self.autoencoder:
+			self.q_layer2 = create_qlayer(qnn_constructors[self.qnn_name], self.q_num)
 
 	def forward(self, x: torch.Tensor):
 		embedding = self.q_layer1(x)
-		embedding[:, 0:self.q_num - self.embedding_size] = 0
-		reconstruction = self.q_layer2(embedding)
 
-		return reconstruction
+		if self.autoencoder:
+			embedding[:, 0:self.q_num - self.embedding_size] = 0
+			reconstruction = self.q_layer2(embedding)
+
+			return reconstruction
+		else:
+			return embedding
 
 
 class MLFModel(PythonModel):
@@ -69,10 +77,11 @@ class MLFModel(PythonModel):
 	def __init__(self, q_model: QuantumModel):
 		self.q_num = q_model.q_num
 		self.qnn_name = q_model.qnn_name
+		self.autoencoder = q_model.autoencoder
 		self.embedding_size = q_model.embedding_size
 
 	def predict(self, context: PythonModelContext, model_input: pd.DataFrame):
-		model = QuantumModel(self.q_num, self.qnn_name, self.embedding_size)
+		model = QuantumModel(self.q_num, self.qnn_name, self.autoencoder, self.embedding_size)
 
 		sd = pickle.load(open(context.artifacts["circuit_parameters"], "rb"))
 		model.load_state_dict(sd)
@@ -138,7 +147,9 @@ def example_load_model():
 
 def cli():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--qnn", type=str)  # TODO: add option to choose between normal and autoencoder, add embedding size as argument
+	parser.add_argument("--qnn", type=str)
+	parser.add_argument("--autoencoder", type=int)  # 0: false, 1: true
+	parser.add_argument("--embedding_size", type=int)
 	parser.add_argument("--qnum", type=int)
 	parser.add_argument("--steps", type=int)
 	parser.add_argument("--optimizer", type=str)
@@ -171,6 +182,8 @@ def cli():
 	args = parser.parse_args()
 
 	qnn_name: str = args.qnn
+	autoencoder: bool = bool(args.autoencoder)
+	embedding_size: int = args.embedding_size
 	qnum: int = args.qnum
 	steps: int = args.steps
 	optimizer_name: str = args.optimizer
@@ -200,7 +213,7 @@ def cli():
 	dampening: float = args.dampening
 	nesterov: bool = bool(args.nesterov)
 
-	model = QuantumModel(3, qnn_name, 3)  # TODO: set embedding size
+	model = QuantumModel(3, qnn_name, autoencoder, embedding_size)
 
 	inputs = torch.tensor([[0.0] * qnum], requires_grad=False)
 	target = torch.tensor([[0.8] * qnum], requires_grad=False)
