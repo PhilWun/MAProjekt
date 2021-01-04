@@ -1,7 +1,7 @@
 import argparse
 import pickle
 from math import pi
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Any, TypeVar, Type
 
 import mlflow
 import pandas as pd
@@ -105,18 +105,19 @@ class QuantumModel(torch.nn.Module):
 			return embedding
 
 
+T = TypeVar("T", bound=torch.nn.Module)
+
+
 class MLFModel(PythonModel):
 	"""
 	MLflow model to store a trained model in a folder.
 	"""
-	def __init__(self, q_model: QuantumModel):
-		self.q_num = q_model.q_num
-		self.qnn_name = q_model.qnn_name
-		self.autoencoder = q_model.autoencoder
-		self.embedding_size = q_model.embedding_size
+	def __init__(self, model_class: Type[T], *args):
+		self.model_class = model_class
+		self.args = args
 
 	def predict(self, context: PythonModelContext, model_input: pd.DataFrame):
-		model = QuantumModel(self.q_num, self.qnn_name, self.autoencoder, self.embedding_size)
+		model = self.model_class(*self.args)
 
 		sd = pickle.load(open(context.artifacts["circuit_parameters"], "rb"))
 		model.load_state_dict(sd)
@@ -175,7 +176,7 @@ def example_train_qnn1():
 
 def example_load_model():
 	q_num = 3
-	model = mlflow.pyfunc.load_model("hybrid_model")
+	model = mlflow.pyfunc.load_model("file:///home/philipp/MEGA/Studium/PlanQK/MA/Projekt/mlruns/0/433e0d15b3ff4ea783ea2ab60cb2782b/artifacts/hybrid_model")
 	inputs = pd.DataFrame([[0.0] * q_num])
 	print(model.predict(inputs))
 
@@ -250,7 +251,8 @@ def cli():
 	dampening: float = args.dampening
 	nesterov: bool = bool(args.nesterov)
 
-	model = QuantumModel(3, qnn_name, autoencoder, embedding_size)
+	model_args = (3, qnn_name, autoencoder, embedding_size)
+	model = QuantumModel(*model_args)
 
 	train_input = torch.tensor([[0.0] * qnum], requires_grad=False)
 	train_target = torch.tensor([[0.8] * qnum], requires_grad=False)
@@ -285,11 +287,11 @@ def cli():
 		optimizer = torch.optim.SGD(model.parameters(), lr, momentum, dampening, weight_decay, nesterov)
 
 	training_loop(model, train_input, train_target, test_input, test_target, optimizer, steps, batch_size)
-	mlf_model = MLFModel(model)
+	mlf_model = MLFModel(model.__class__, *model_args)
 	log_model(model, mlf_model)
 
 
 if __name__ == "__main__":
 	# example_train_qnn1()
-	# example_load_model()
-	cli()
+	example_load_model()
+	# cli()
