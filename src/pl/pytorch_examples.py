@@ -1,6 +1,7 @@
 import argparse
 import pickle
-from typing import Callable
+from math import pi
+from typing import Callable, Optional, Any
 
 import mlflow
 import pandas as pd
@@ -26,16 +27,24 @@ def create_qlayer(constructor_func: Callable, q_num: int) -> qml.qnn.TorchLayer:
 
 
 def training_loop(
-		model: torch.nn.Module, inputs: torch.Tensor, target: torch.Tensor, opt: torch.optim.Optimizer, steps: int, batch_size: int):
+		model: torch.nn.Module, train_input: torch.Tensor, train_target: torch.Tensor, test_input: Optional[torch.Tensor],
+		test_target: Optional[torch.Tensor], opt: torch.optim.Optimizer, steps: int, batch_size: int):
 	loss_func = torch.nn.MSELoss()
-	dataset = TensorDataset(inputs, target)
-	dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+	train_dataset = TensorDataset(train_input, train_target)
+	train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+	test_data_available = test_input is not None and test_target is not None
+
+	if test_data_available:
+		test_dataset = TensorDataset(test_input, test_target)
+		test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
 
 	for i in range(steps):
+		# training on the training dataset
 		error_sum = 0
 		batch_cnt = 0
 
-		for batch_input, batch_target in dataloader:
+		for batch_input, batch_target in train_dataloader:
 			opt.zero_grad()
 			loss = loss_func(model(batch_input), batch_target)
 			loss.backward()
@@ -44,8 +53,23 @@ def training_loop(
 			batch_cnt += 1
 
 		error_mean = error_sum / batch_cnt
-		print("Step:", i, "MSE:", error_mean)
+		print("Step:", i, "Training MSE:", error_mean)
 		mlflow.log_metric("Training MSE", error_mean, i)
+
+		if test_data_available:
+			# calculating the error on the test dataset
+			error_sum = 0
+			batch_cnt = 0
+
+			for batch_input, batch_target in test_dataloader:
+				with torch.no_grad():
+					loss = loss_func(model(batch_input), batch_target)
+					error_sum += loss.item()
+					batch_cnt += 1
+
+			error_mean = error_sum / batch_cnt
+			print("Step:", i, "Test MSE:", error_mean)
+			mlflow.log_metric("Test MSE", error_mean, i)
 
 
 qnn_constructors = {
@@ -228,8 +252,14 @@ def cli():
 
 	model = QuantumModel(3, qnn_name, autoencoder, embedding_size)
 
-	inputs = torch.tensor([[0.0] * qnum], requires_grad=False)
-	target = torch.tensor([[0.8] * qnum], requires_grad=False)
+	train_input = torch.tensor([[0.0] * qnum], requires_grad=False)
+	train_target = torch.tensor([[0.8] * qnum], requires_grad=False)
+	test_input = None
+	test_target = None
+	# train_input = torch.tensor([[0.0] * qnum, [pi / 2] * qnum, [pi] * qnum], requires_grad=False)
+	# train_target = torch.tensor([[-1.0] * qnum, [0] * qnum, [1.0] * qnum], requires_grad=False)
+	# test_input = torch.tensor([[pi / 4] * qnum, [3 / 4 * pi] * qnum], requires_grad=False)
+	# test_target = torch.tensor([[-0.5] * qnum, [0.5] * qnum], requires_grad=False)
 
 	optimizer = None
 
@@ -254,7 +284,7 @@ def cli():
 	elif optimizer_name == "SGD":
 		optimizer = torch.optim.SGD(model.parameters(), lr, momentum, dampening, weight_decay, nesterov)
 
-	training_loop(model, inputs, target, optimizer, steps, batch_size)
+	training_loop(model, train_input, train_target, test_input, test_target, optimizer, steps, batch_size)
 	mlf_model = MLFModel(model)
 	log_model(model, mlf_model)
 
