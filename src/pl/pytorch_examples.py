@@ -293,5 +293,5 @@ def cli():
 
 if __name__ == "__main__":
 	# example_train_qnn1()
-	example_load_model()
-	# cli()
+	# example_load_model()
+	cli()
