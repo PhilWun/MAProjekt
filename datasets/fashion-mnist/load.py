@@ -28,3 +28,7 @@ def _load_images_labels(images_path: str, labels_path: str) -> Tuple[np.ndarray,
 	labels = np.frombuffer(labels_raw.read(), dtype=np.uint8, offset=8)
 
 	return images, labels
+
+
+if __name__ == "__main__":
+	load_dataset()

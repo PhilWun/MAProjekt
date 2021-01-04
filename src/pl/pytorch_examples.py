@@ -7,6 +7,7 @@ import pandas as pd
 import pennylane as qml
 import torch
 from mlflow.pyfunc import PythonModel, PythonModelContext
+from torch.utils.data import TensorDataset, DataLoader
 
 import QNN1
 import QNN2
@@ -25,16 +26,26 @@ def create_qlayer(constructor_func: Callable, q_num: int) -> qml.qnn.TorchLayer:
 
 
 def training_loop(
-		model: torch.nn.Module, inputs: torch.Tensor, target: torch.Tensor, opt: torch.optim.Optimizer, steps: int):
+		model: torch.nn.Module, inputs: torch.Tensor, target: torch.Tensor, opt: torch.optim.Optimizer, steps: int, batch_size: int):
 	loss_func = torch.nn.MSELoss()
+	dataset = TensorDataset(inputs, target)
+	dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 	for i in range(steps):
-		opt.zero_grad()
-		loss = loss_func(model(inputs), target)
-		loss.backward()
-		opt.step()
-		print("Step:", i, "MSE:", loss.item())
-		mlflow.log_metric("Training MSE", loss.item(), i)
+		error_sum = 0
+		batch_cnt = 0
+
+		for batch_input, batch_target in dataloader:
+			opt.zero_grad()
+			loss = loss_func(model(batch_input), batch_target)
+			loss.backward()
+			opt.step()
+			error_sum += loss.item()
+			batch_cnt += 1
+
+		error_mean = error_sum / batch_cnt
+		print("Step:", i, "MSE:", error_mean)
+		mlflow.log_metric("Training MSE", error_mean, i)
 
 
 qnn_constructors = {
@@ -152,6 +163,7 @@ def cli():
 	parser.add_argument("--embedding_size", type=int)
 	parser.add_argument("--qnum", type=int)
 	parser.add_argument("--steps", type=int)
+	parser.add_argument("--batch_size", type=int)
 	parser.add_argument("--optimizer", type=str)
 	parser.add_argument("--lr", type=float)
 	parser.add_argument("--rho", type=float)
@@ -186,6 +198,7 @@ def cli():
 	embedding_size: int = args.embedding_size
 	qnum: int = args.qnum
 	steps: int = args.steps
+	batch_size: int = args.batch_size
 	optimizer_name: str = args.optimizer
 	lr: float = args.lr
 	rho: float = args.rho
@@ -241,7 +254,7 @@ def cli():
 	elif optimizer_name == "SGD":
 		optimizer = torch.optim.SGD(model.parameters(), lr, momentum, dampening, weight_decay, nesterov)
 
-	training_loop(model, inputs, target, optimizer, steps)
+	training_loop(model, inputs, target, optimizer, steps, batch_size)
 	mlf_model = MLFModel(model)
 	log_model(model, mlf_model)
 
