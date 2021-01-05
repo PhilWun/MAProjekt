@@ -220,7 +220,7 @@ def parse_arg_str(args_str: str, arg_types: List[type], arg_names: List[str]) ->
 			value = t(value_str)
 
 		parsed.append(value)
-		mlflow.log_param(name, value)
+		mlflow.set_tag(name, value)
 
 	return parsed
 
