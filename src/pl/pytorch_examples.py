@@ -84,25 +84,53 @@ class QuantumModel(torch.nn.Module):
 		super(QuantumModel, self).__init__()
 
 		self.q_num = q_num
-		self.qnn_name = qnn_name
 		self.autoencoder = autoencoder
 		self.embedding_size = embedding_size
 
-		self.q_layer1 = create_qlayer(qnn_constructors[self.qnn_name], self.q_num)
+		self.q_layer1 = create_qlayer(qnn_constructors[qnn_name], q_num)
 
-		if self.autoencoder:
-			self.q_layer2 = create_qlayer(qnn_constructors[self.qnn_name], self.q_num)
+		if autoencoder:
+			self.q_layer2 = create_qlayer(qnn_constructors[qnn_name], q_num)
 
-	def forward(self, x: torch.Tensor):
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		embedding = self.q_layer1(x)
 
 		if self.autoencoder:
-			embedding[:, 0:self.q_num - self.embedding_size] = 0
+			embedding[:, 0:self.q_num - self.embedding_size] = 0  # TODO: scale values
 			reconstruction = self.q_layer2(embedding)
 
 			return reconstruction
 		else:
 			return embedding
+
+
+class HybridAutoencoder(torch.nn.Module):
+	def __init__(self, input_size: int, q_num: int, embedding_size: int, qnn_name: str):
+		super(HybridAutoencoder, self).__init__()
+
+		self.q_num = q_num
+		self.embedding_size = embedding_size
+
+		self.fc1 = torch.nn.Linear(input_size, q_num)
+		self.q_layer1 = create_qlayer(qnn_constructors[qnn_name], q_num)
+		self.q_layer2 = create_qlayer(qnn_constructors[qnn_name], q_num)
+		self.fc2 = torch.nn.Linear(q_num, input_size)
+
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
+		# encoder
+		x = torch.sigmoid(self.fc1(x))
+		embedding = self.q_layer1(x)
+
+		# bottleneck
+		embedding[:, 0:self.q_num - self.embedding_size] = 0
+		# scaling
+		embedding *= pi
+
+		# decoder
+		x = self.q_layer2(embedding)
+		reconstruction = self.fc2(x)
+
+		return reconstruction
 
 
 T = TypeVar("T", bound=torch.nn.Module)
@@ -187,6 +215,7 @@ def cli():
 	parser.add_argument("--autoencoder", type=int)  # 0: false, 1: true
 	parser.add_argument("--embedding_size", type=int)
 	parser.add_argument("--qnum", type=int)
+	parser.add_argument("--hybrid", type=int)  # 0: false, 1: true
 	parser.add_argument("--steps", type=int)
 	parser.add_argument("--batch_size", type=int)
 	parser.add_argument("--optimizer", type=str)
@@ -222,6 +251,7 @@ def cli():
 	autoencoder: bool = bool(args.autoencoder)
 	embedding_size: int = args.embedding_size
 	qnum: int = args.qnum
+	hybrid: bool = bool(args.hybrid)
 	steps: int = args.steps
 	batch_size: int = args.batch_size
 	optimizer_name: str = args.optimizer
@@ -251,8 +281,12 @@ def cli():
 	dampening: float = args.dampening
 	nesterov: bool = bool(args.nesterov)
 
-	model_args = (3, qnn_name, autoencoder, embedding_size)
-	model = QuantumModel(*model_args)
+	if hybrid:
+		model_args = (qnum, qnum, embedding_size, qnn_name)
+		model = HybridAutoencoder(*model_args)
+	else:
+		model_args = (qnum, qnn_name, autoencoder, embedding_size)
+		model = QuantumModel(*model_args)
 
 	train_input = torch.tensor([[0.0] * qnum], requires_grad=False)
 	train_target = torch.tensor([[0.8] * qnum], requires_grad=False)
