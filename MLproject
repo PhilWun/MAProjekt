@@ -18,40 +18,13 @@ entry_points:
     command: "python src/pl/numpy_examples.py --qnn {qnn} --qnum {qnum} --optimizer {optimizer} --stepsize {stepsize} --eps {eps} --beta1 {beta1} --beta2 {beta2} --momentum {momentum} --decay {decay} --steps {steps}"
   pennylane_pytorch:
     parameters:
-      qnn: {type: string, default: "QNN1"}
-      autoencoder: {type: float, default: 0}
-      embedding_size: {type: float, default: 2}
-      qnum: {type: float, default: 3}
-      hybrid: {type: int, default: 0}
+      model: {type: string, default: "quantum"}
+      model_args: {type: string, default: "3,QNN1,false,2"}
       steps: {type: float, default: 100}
       batch_size: {type: float, default: 1}
       optimizer: {type: string, default: "Adam"}
-      lr: {type: float, default: 0.1}
-      rho: {type: float, default: 0.9}
-      eps: {type: float, default: 1e-6}
-      weight_decay: {type: float, default: 0}
-      lr_decay: {type: float, default: 0}
-      initial_accumulator_value: {type: float, default: 0}
-      beta1: {type: float, default: 0.9}
-      beta2: {type: float, default: 0.999}
-      amsgrad: {type: float, default: 0}
-      lambd: {type: float, default: 0.0001}
-      alpha: {type: float, default: 0.75}
-      t0: {type: float, default: 1000000}
-      max_iter: {type: float, default: 20}
-      max_eval: {type: float, default: 25}
-      tolerance_grad: {type: float, default: 1e-7}
-      tolerance_change: {type: float, default: 1e-9}
-      history_size: {type: float, default: 100}
-      momentum: {type: float, default: 0}
-      centered: {type: float, default: 0}
-      eta1: {type: float, default: 0.5}
-      eta2: {type: float, default: 1.2}
-      step_size1: {type: float, default: 1e-6}
-      step_size2: {type: float, default: 50}
-      dampening: {type: float, default: 0}
-      nesterov: {type: float, default: 0}
-    command: "python src/pl/pytorch_examples.py --qnn {qnn} --autoencoder {autoencoder} --embedding_size {embedding_size} --qnum {qnum} --hybrid {hybrid} --steps {steps} --batch_size {batch_size} --optimizer {optimizer} --lr {lr} --rho {rho} --eps {eps} --weight_decay {weight_decay} --lr_decay {lr_decay} --initial_accumulator_value {initial_accumulator_value} --beta1 {beta1} --beta2 {beta2} --amsgrad {amsgrad} --lambd {lambd} --alpha {alpha} --t0 {t0} --max_iter {max_iter} --max_eval {max_eval} --tolerance_grad {tolerance_grad} --tolerance_change {tolerance_change} --history_size {history_size} --momentum {momentum} --centered {centered} --eta1 {eta1} --eta2 {eta2} --step_size1 {step_size1} --step_size2 {step_size2} --dampening {dampening} --nesterov {nesterov}"
+      optimizer_args: {type: string, default: "0.1,0.9,0.999,1e-08,0,false"}
+    command: "python src/pl/pytorch_examples.py --model {model} --model_args {model_args} --steps {steps} --batch_size {batch_size} --optimizer {optimizer} --optimizer_args {optimizer_args}"
   qiskit:
     parameters:
       qnn: {type: string, default: "QNN1"}

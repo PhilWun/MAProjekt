@@ -1,7 +1,7 @@
 import argparse
 import pickle
 from math import pi
-from typing import Callable, Optional, Any, TypeVar, Type
+from typing import Callable, Optional, Any, TypeVar, Type, List
 
 import mlflow
 import pandas as pd
@@ -209,87 +209,59 @@ def example_load_model():
 	print(model.predict(inputs))
 
 
+def parse_arg_str(args_str: str, arg_types: List[type], arg_names: List[str]) -> List:
+	split_args = args_str.split(",")
+	parsed = []
+
+	for value_str, t, name in zip(split_args, arg_types, arg_names):
+		if t == bool:
+			value = value_str == "true"
+		else:
+			value = t(value_str)
+
+		parsed.append(value)
+		mlflow.log_param(name, value)
+
+	return parsed
+
+
 def cli():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--qnn", type=str)
-	parser.add_argument("--autoencoder", type=int)  # 0: false, 1: true
-	parser.add_argument("--embedding_size", type=int)
-	parser.add_argument("--qnum", type=int)
-	parser.add_argument("--hybrid", type=int)  # 0: false, 1: true
+	parser.add_argument("--model", type=str)
+	parser.add_argument("--model_args", type=str)
 	parser.add_argument("--steps", type=int)
 	parser.add_argument("--batch_size", type=int)
 	parser.add_argument("--optimizer", type=str)
-	parser.add_argument("--lr", type=float)
-	parser.add_argument("--rho", type=float)
-	parser.add_argument("--eps", type=float)
-	parser.add_argument("--weight_decay", type=float)
-	parser.add_argument("--lr_decay", type=float)
-	parser.add_argument("--initial_accumulator_value", type=float)
-	parser.add_argument("--beta1", type=float)
-	parser.add_argument("--beta2", type=float)
-	parser.add_argument("--amsgrad", type=int)  # 0: false, 1: true
-	parser.add_argument("--lambd", type=float)
-	parser.add_argument("--alpha", type=float)
-	parser.add_argument("--t0", type=float)
-	parser.add_argument("--max_iter", type=int)
-	parser.add_argument("--max_eval", type=float)
-	parser.add_argument("--tolerance_grad", type=float)
-	parser.add_argument("--tolerance_change", type=float)
-	parser.add_argument("--history_size", type=int)
-	parser.add_argument("--momentum", type=float)
-	parser.add_argument("--centered", type=int)  # 0: false, 1: true
-	parser.add_argument("--eta1", type=float)
-	parser.add_argument("--eta2", type=float)
-	parser.add_argument("--step_size1", type=float)
-	parser.add_argument("--step_size2", type=float)
-	parser.add_argument("--dampening", type=float)
-	parser.add_argument("--nesterov", type=int)
+	parser.add_argument("--optimizer_args", type=str)
 
 	args = parser.parse_args()
 
-	qnn_name: str = args.qnn
-	autoencoder: bool = bool(args.autoencoder)
-	embedding_size: int = args.embedding_size
-	qnum: int = args.qnum
-	hybrid: bool = bool(args.hybrid)
+	model_name: str = args.model
+	model_args_str: str = args.model_args
 	steps: int = args.steps
 	batch_size: int = args.batch_size
 	optimizer_name: str = args.optimizer
-	lr: float = args.lr
-	rho: float = args.rho
-	eps: float = args.eps
-	weight_decay: float = args.weight_decay
-	lr_decay: float = args.lr_decay
-	initial_accumulator_value: float = args.initial_accumulator_value
-	beta1: float = args.beta1
-	beta2: float = args.beta2
-	amsgrad: bool = bool(args.amsgrad)
-	lambd: float = args.lambd
-	alpha: float = args.alpha
-	t0: float = args.t0
-	max_iter: int = args.max_iter
-	max_eval: int = args.max_eval
-	tolerance_grad: float = args.tolerance_grad
-	tolerance_change: float = args.tolerance_change
-	history_size: int = args.history_size
-	momentum: float = args.momentum
-	centered: bool = bool(args.centered)
-	eta1: float = args.eta1
-	eta2: float = args.eta2
-	step_size1: float = args.step_size1
-	step_size2: float = args.step_size2
-	dampening: float = args.dampening
-	nesterov: bool = bool(args.nesterov)
+	optimizer_args_str: str = args.optimizer_args
 
-	if hybrid:
-		model_args = (qnum, qnum, embedding_size, qnn_name)
+	if model_name == "hybrid":
+		model_args = parse_arg_str(
+			model_args_str,
+			[int, int, int, str],
+			["input_size", "q_num", "embedding_size", "qnn_name"]
+		)
 		model = HybridAutoencoder(*model_args)
-	else:
-		model_args = (qnum, qnn_name, autoencoder, embedding_size)
+	elif model_name == "quantum":
+		model_args = parse_arg_str(
+			model_args_str,
+			[int, str, bool, int],
+			["q_num", "qnn_name", "autoencoder", "embedding_size"]
+		)
 		model = QuantumModel(*model_args)
+	else:
+		raise ValueError()
 
-	train_input = torch.tensor([[0.0] * qnum], requires_grad=False)
-	train_target = torch.tensor([[0.8] * qnum], requires_grad=False)
+	train_input = torch.tensor([[0.0] * 3], requires_grad=False)
+	train_target = torch.tensor([[0.8] * 3], requires_grad=False)
 	test_input = None
 	test_target = None
 	# train_input = torch.tensor([[0.0] * qnum, [pi / 2] * qnum, [pi] * qnum], requires_grad=False)
@@ -300,25 +272,80 @@ def cli():
 	optimizer = None
 
 	if optimizer_name == "Adadelta":
-		optimizer = torch.optim.Adadelta(model.parameters(), lr, rho, eps, weight_decay)
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, float, float, float],
+			["lr", "rho", "eps", "weight_decay"])
+		optimizer = torch.optim.Adadelta(model.parameters(), *opt_args)
 	elif optimizer_name == "Adagrad":
-		optimizer = torch.optim.Adagrad(model.parameters(), lr, lr_decay, weight_decay, initial_accumulator_value, eps)
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, float, float, float, float],
+			["lr", "lr_decay", "weight_decay", "initial_accumulator_value", "eps"]
+		)
+		optimizer = torch.optim.Adagrad(model.parameters(), *opt_args)
 	elif optimizer_name == "Adam":
-		optimizer = torch.optim.Adam(model.parameters(), lr, (beta1, beta2), eps, weight_decay, amsgrad)
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, float, float, float, float, bool],
+			["lr", "beta1", "beta2", "eps", "weight_decay", "amsgrad"]
+		)
+		opt_args = [opt_args[0]] + [(opt_args[1], opt_args[2])] + opt_args[3:]
+		optimizer = torch.optim.Adam(model.parameters(), *opt_args)
 	elif optimizer_name == "AdamW":
-		optimizer = torch.optim.AdamW(model.parameters(), lr, (beta1, beta2), eps, weight_decay, amsgrad)
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, float, float, float, float, bool],
+			["lr", "beta1", "beta2", "eps", "weight_decay", "amsgrad"]
+		)
+		opt_args = [opt_args[0]] + [(opt_args[1], opt_args[2])] + opt_args[3:]
+		optimizer = torch.optim.AdamW(model.parameters(), *opt_args)
 	elif optimizer_name == "Adamax":
-		optimizer = torch.optim.Adamax(model.parameters(), lr, (beta1, beta2), eps, weight_decay)
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, float, float, float, float],
+			["lr", "beta1", "beta2", "eps", "weight_decay"]
+		)
+		opt_args = [opt_args[0]] + [(opt_args[1], opt_args[2])] + opt_args[3:]
+		optimizer = torch.optim.Adamax(model.parameters(), *opt_args)
 	elif optimizer_name == "ASGD":
-		optimizer = torch.optim.ASGD(model.parameters(), lr, lambd, alpha, t0, weight_decay)
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, float, float, float, float],
+			["lr", "lambd", "alpha", "t0", "weigth_decay"]
+		)
+		optimizer = torch.optim.ASGD(model.parameters(), *opt_args)
 	elif optimizer_name == "LBFGS":
-		optimizer = torch.optim.LBFGS(model.parameters(), lr, max_iter, max_eval, tolerance_grad, tolerance_change, history_size)
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, int, int, float, float, int],
+			["lr", "max_iter", "max_eval", "tolerance_grad", "tolerance_change", "history_size"]
+		)
+		optimizer = torch.optim.LBFGS(model.parameters(), *opt_args)
 	elif optimizer_name == "RMSprop":
-		optimizer = torch.optim.RMSprop(model.parameters(), lr, alpha, eps, weight_decay, momentum, centered)
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, float, float, float, float, bool],
+			["lr", "alpha", "eps", "weight_decay", "momentum", "centered"]
+		)
+		optimizer = torch.optim.RMSprop(model.parameters(), *opt_args)
 	elif optimizer_name == "Rprop":
-		optimizer = torch.optim.Rprop(model.parameters(), lr, (eta1, eta2), (step_size1, step_size2))
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, float, float, float, float],
+			["lr", "eta1", "eta2", "step_size1", "step_size2"]
+		)
+		opt_args = [opt_args[0], (opt_args[1], opt_args[2]), (opt_args[3], opt_args[4])]
+		optimizer = torch.optim.Rprop(model.parameters(), *opt_args)
 	elif optimizer_name == "SGD":
-		optimizer = torch.optim.SGD(model.parameters(), lr, momentum, dampening, weight_decay, nesterov)
+		opt_args = parse_arg_str(
+			optimizer_args_str,
+			[float, float, float, float, bool],
+			["lr", "momentum", "dampening", "weight_decay", "nesterov"]
+		)
+		optimizer = torch.optim.SGD(model.parameters(), *opt_args)
+	else:
+		raise ValueError()
 
 	training_loop(model, train_input, train_target, test_input, test_target, optimizer, steps, batch_size)
 	mlf_model = MLFModel(model.__class__, *model_args)
