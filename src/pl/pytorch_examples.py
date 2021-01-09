@@ -98,7 +98,7 @@ class QuantumModel(torch.nn.Module):
 		embedding = (embedding / 2.0 + 0.5) * pi
 
 		if self.autoencoder:
-			embedding[:, 0:self.q_num - self.embedding_size] = 0  # TODO: scale values
+			embedding[:, 0:self.q_num - self.embedding_size] = 0
 			reconstruction = self.q_layer2(embedding)
 
 			return reconstruction
