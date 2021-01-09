@@ -1,8 +1,3 @@
-from enum import Enum
-
-import numpy as np
-import pandas
-import sklearn.preprocessing as preprocessing
 from sklearn.model_selection import train_test_split
 
 from datasets.tools import ColumnType, load_csv

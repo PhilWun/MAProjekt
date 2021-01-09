@@ -23,8 +23,7 @@ def load_csv(file: str, column_types: List[ColumnType]) -> Tuple[np.ndarray, np.
 		column_data = np_data[:, i].reshape((-1, 1))
 
 		if ct == ColumnType.NUMERIC:
-			scaler = preprocessing.StandardScaler()
-			preprocessed_columns.append(scaler.fit_transform(column_data))
+			preprocessed_columns.append(column_data)
 		elif ct == ColumnType.CATEGORICAL:
 			enc = preprocessing.OneHotEncoder(sparse=False)
 			preprocessed_columns.append(enc.fit_transform(column_data))
