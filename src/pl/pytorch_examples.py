@@ -94,6 +94,8 @@ class QuantumModel(torch.nn.Module):
 
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		embedding = self.q_layer1(x)
+		# scaling the values to be in the range [0, pi]
+		embedding = (embedding / 2.0 + 0.5) * pi
 
 		if self.autoencoder:
 			embedding[:, 0:self.q_num - self.embedding_size] = 0  # TODO: scale values
@@ -121,10 +123,10 @@ class HybridAutoencoder(torch.nn.Module):
 		x = torch.sigmoid(self.fc1(x))
 		embedding = self.q_layer1(x)
 
+		# scaling the values to be in the range [0, pi]
+		embedding = (embedding / 2.0 + 0.5) * pi
 		# bottleneck
 		embedding[:, 0:self.q_num - self.embedding_size] = 0
-		# scaling
-		embedding *= pi
 
 		# decoder
 		x = self.q_layer2(embedding)
