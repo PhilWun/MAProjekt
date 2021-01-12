@@ -18,13 +18,16 @@ entry_points:
     command: "python src/pl/numpy_examples.py --qnn {qnn} --qnum {qnum} --optimizer {optimizer} --stepsize {stepsize} --eps {eps} --beta1 {beta1} --beta2 {beta2} --momentum {momentum} --decay {decay} --steps {steps}"
   pennylane_pytorch:
     parameters:
+      dataset: {type: string, default: "trivial"}
+      dataset_fraction: {type: float, default: 1.0}
+      scaler: {type: string, default: "none"}
       model: {type: string, default: "quantum"}
-      model_args: {type: string, default: "3,QNN1,false,2"}
+      model_args: {type: string, default: "QNN1,false,2"}
       steps: {type: float, default: 100}
       batch_size: {type: float, default: 1}
       optimizer: {type: string, default: "Adam"}
       optimizer_args: {type: string, default: "0.1,0.9,0.999,1e-08,0,false"}
-    command: "python src/pl/pytorch_examples.py --model {model} --model_args {model_args} --steps {steps} --batch_size {batch_size} --optimizer {optimizer} --optimizer_args {optimizer_args}"
+    command: "python mlflow_pennylane_pytorch.py --dataset {dataset} --dataset_fraction {dataset_fraction} --scaler {scaler} --model {model} --model_args {model_args} --steps {steps} --batch_size {batch_size} --optimizer {optimizer} --optimizer_args {optimizer_args}"
   qiskit:
     parameters:
       qnn: {type: string, default: "QNN1"}

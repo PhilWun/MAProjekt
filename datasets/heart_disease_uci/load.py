@@ -26,7 +26,7 @@ def load_dataset(test_set_fraction: float = 0.3, rnd_seed: float = 0):
 		ColumnType.LABEL
 	]
 
-	data, labels = load_csv("heart.csv", column_types)
+	data, labels = load_csv("/home/philipp/MEGA/Studium/PlanQK/MA/Projekt/datasets/heart_disease_uci/heart.csv", column_types)
 	input_train, input_test, target_train, target_test = train_test_split(
 		data, labels, test_size=test_set_fraction, random_state=rnd_seed)
 

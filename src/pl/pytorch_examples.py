@@ -1,21 +1,34 @@
 import argparse
 import pickle
 from math import pi
-from typing import Callable, Optional, Any, TypeVar, Type, List
+from typing import Callable, Optional, TypeVar, Type, List
 
 import mlflow
 import pandas as pd
 import pennylane as qml
 import torch
+import numpy as np
 from mlflow.pyfunc import PythonModel, PythonModelContext
+from sklearn.preprocessing import StandardScaler, RobustScaler
 from torch.utils.data import TensorDataset, DataLoader
 
-import QNN1
-import QNN2
-import QNN3
+from . import QNN1
+from . import QNN2
+from . import QNN3
+import datasets.creditcardfraud.load as creditcardfraud
+import datasets.fashion_mnist.load as fashion_mnist
+import datasets.heart_disease_uci.load as heart_disease_uci
 
 
 def create_qlayer(constructor_func: Callable, q_num: int) -> qml.qnn.TorchLayer:
+	"""
+	Input of the created quantum layer should be in the range [0, pi]. The output will be in the range [-1, 1] if the
+	measurement is done with pauli-z.
+
+	:param constructor_func: Function that constructs the circuit.
+	:param q_num: Number of qubits.
+	:return: Pennylane TorchLayer.
+	"""
 	dev = qml.device('default.qubit', wires=q_num, shots=1000, analytic=False)
 	circ_func, param_num = constructor_func(q_num)
 	qnode = qml.QNode(circ_func, dev, interface="torch")
@@ -93,6 +106,12 @@ class QuantumModel(torch.nn.Module):
 			self.q_layer2 = create_qlayer(qnn_constructors[qnn_name], q_num)
 
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
+		"""
+		Calculates the output of the model.
+
+		:param x: The input. Values should be in the range [0, pi].
+		:return: Output of the model. Values are in the range [-1, 1] if autoencoder is true, otherwise [0, pi].
+		"""
 		embedding = self.q_layer1(x)
 		# scaling the values to be in the range [0, pi]
 		embedding = (embedding / 2.0 + 0.5) * pi
@@ -119,9 +138,16 @@ class HybridAutoencoder(torch.nn.Module):
 		self.fc2 = torch.nn.Linear(q_num, input_size)
 
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
+		"""
+		Calculates the output of the model.
+
+		:param x: Input. The range of the values can be anything, but should be appropriately scaled.
+		:return: Output of the model. The range of the values can be anything.
+		"""
 		# encoder
 		x = torch.sigmoid(self.fc1(x))
-		embedding = self.q_layer1(x)
+		x = x * pi  # scale with pi because input to the quantum layer should be in the range [0, pi]
+		embedding = self.q_layer1(x)  # output in the range [-1, 1]
 
 		# scaling the values to be in the range [0, pi]
 		embedding = (embedding / 2.0 + 0.5) * pi
@@ -229,6 +255,9 @@ def parse_arg_str(args_str: str, arg_types: List[type], arg_names: List[str]) ->
 
 def cli():
 	parser = argparse.ArgumentParser()
+	parser.add_argument("--dataset", type=str)
+	parser.add_argument("--dataset_fraction", type=float)
+	parser.add_argument("--scaler", type=str)
 	parser.add_argument("--model", type=str)
 	parser.add_argument("--model_args", type=str)
 	parser.add_argument("--steps", type=int)
@@ -238,6 +267,9 @@ def cli():
 
 	args = parser.parse_args()
 
+	dataset_name: str = args.dataset
+	dataset_fraction: float = args.dataset_fraction
+	scaler_name: str = args.scaler
 	model_name: str = args.model
 	model_args_str: str = args.model_args
 	steps: int = args.steps
@@ -245,31 +277,73 @@ def cli():
 	optimizer_name: str = args.optimizer
 	optimizer_args_str: str = args.optimizer_args
 
+	train_input = None
+	train_target = None
+	test_input = None
+	test_target = None
+
+	if dataset_name == "trivial":
+		train_input = np.array([[0.8] * 3], dtype=np.float32)
+	elif dataset_name == "fashion_mnist":
+		train_input, _, test_input, _ = fashion_mnist.load_dataset()
+	elif dataset_name == "heart_disease_uci":
+		train_input, _, test_input, _ = heart_disease_uci.load_dataset()
+	elif dataset_name == "creditcardfraud":
+		train_input, _, test_input, _ = creditcardfraud.load_dataset()
+	else:
+		raise ValueError(dataset_name)
+
+	if dataset_fraction != 1.0:
+		rng = np.random.default_rng()
+
+		# shuffle the rows
+		rng.shuffle(train_input, axis=0)
+		rng.shuffle(test_input, axis=0)
+		# keep only a fraction of the whole dataset
+		train_input = train_input[0:int(train_input.shape[0] * dataset_fraction)]
+		test_input = test_input[0:int(test_input.shape[0] * dataset_fraction)]
+
+	if scaler_name == "none":
+		pass
+	elif scaler_name == "standard":
+		scaler = StandardScaler()
+		scaler.fit(train_input)
+		train_input = scaler.transform(train_input)
+		test_input = scaler.transform(test_input)
+	elif scaler_name == "robust":
+		scaler = RobustScaler()
+		scaler.fit(train_input)
+		train_input = scaler.transform(train_input)
+		test_input = scaler.transform(test_input)
+
+	# convert to tensor
+	train_input = torch.tensor(train_input, requires_grad=False)
+
+	if test_input is not None:
+		test_input = torch.tensor(test_input, requires_grad=False)
+
+	# set the target equal to the input, because the model is used as an autoencoder
+	train_target = train_input
+	test_target = test_input
+
 	if model_name == "hybrid":
 		model_args = parse_arg_str(
 			model_args_str,
-			[int, int, int, str],
-			["input_size", "q_num", "embedding_size", "qnn_name"]
+			[int, int, str],
+			["q_num", "embedding_size", "qnn_name"]
 		)
+		model_args = (train_input.shape[1], *model_args)  # infer the input size from the dataset
 		model = HybridAutoencoder(*model_args)
 	elif model_name == "quantum":
 		model_args = parse_arg_str(
 			model_args_str,
-			[int, str, bool, int],
-			["q_num", "qnn_name", "autoencoder", "embedding_size"]
+			[str, bool, int],
+			["qnn_name", "autoencoder", "embedding_size"]
 		)
+		model_args = (train_input.shape[1], *model_args)  # infer the number of qubits from the dataset
 		model = QuantumModel(*model_args)
 	else:
 		raise ValueError()
-
-	train_input = torch.tensor([[0.0] * 3], requires_grad=False)
-	train_target = torch.tensor([[0.8] * 3], requires_grad=False)
-	test_input = None
-	test_target = None
-	# train_input = torch.tensor([[0.0] * qnum, [pi / 2] * qnum, [pi] * qnum], requires_grad=False)
-	# train_target = torch.tensor([[-1.0] * qnum, [0] * qnum, [1.0] * qnum], requires_grad=False)
-	# test_input = torch.tensor([[pi / 4] * qnum, [3 / 4 * pi] * qnum], requires_grad=False)
-	# test_target = torch.tensor([[-0.5] * qnum, [0.5] * qnum], requires_grad=False)
 
 	optimizer = None
 
