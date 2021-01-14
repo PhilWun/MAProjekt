@@ -52,6 +52,8 @@ def training_loop(
 		test_dataset = TensorDataset(test_input, test_target)
 		test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
 
+	batch_cnt_overall = 0
+
 	for i in range(steps):
 		# training on the training dataset
 		error_sum = 0
@@ -63,7 +65,9 @@ def training_loop(
 			loss.backward()
 			opt.step()
 			error_sum += loss.item()
+			mlflow.log_metric("Training Batch MSE", loss.item(), batch_cnt_overall)
 			batch_cnt += 1
+			batch_cnt_overall += 1
 
 		error_mean = error_sum / batch_cnt
 		print("Step:", i, "Training MSE:", error_mean)
