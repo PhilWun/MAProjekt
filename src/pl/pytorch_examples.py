@@ -1,7 +1,8 @@
 import argparse
 import pickle
+from itertools import chain
 from math import pi
-from typing import Callable, Optional, TypeVar, Type, List
+from typing import Callable, Optional, TypeVar, Type, List, Iterator
 
 import mlflow
 import pandas as pd
@@ -41,7 +42,7 @@ def create_qlayer(constructor_func: Callable, q_num: int) -> qml.qnn.TorchLayer:
 
 def training_loop(
 		model: torch.nn.Module, train_input: torch.Tensor, train_target: torch.Tensor, test_input: Optional[torch.Tensor],
-		test_target: Optional[torch.Tensor], opt: torch.optim.Optimizer, steps: int, batch_size: int):
+		test_target: Optional[torch.Tensor], optis: List[torch.optim.Optimizer], steps: int, batch_size: int):
 	loss_func = torch.nn.MSELoss()
 	train_dataset = TensorDataset(train_input, train_target)
 	train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -60,10 +61,15 @@ def training_loop(
 		batch_cnt = 0
 
 		for batch_input, batch_target in train_dataloader:
-			opt.zero_grad()
+			for opt in optis:
+				opt.zero_grad()
+
 			loss = loss_func(model(batch_input), batch_target)
 			loss.backward()
-			opt.step()
+
+			for opt in optis:
+				opt.step()
+
 			error_sum += loss.item()
 			mlflow.log_metric("Training Batch MSE", loss.item(), batch_cnt_overall)
 			batch_cnt += 1
@@ -164,6 +170,12 @@ class HybridAutoencoder(torch.nn.Module):
 
 		return reconstruction
 
+	def get_classical_parameters(self) -> Iterator[torch.nn.parameter.Parameter]:
+		return chain(self.fc1.parameters(), self.fc2.parameters())
+
+	def get_quantum_parameters(self) -> Iterator[torch.nn.parameter.Parameter]:
+		return chain(self.q_layer1.parameters(), self.q_layer2.parameters())
+
 
 T = TypeVar("T", bound=torch.nn.Module)
 
@@ -247,7 +259,7 @@ def parse_arg_str(args_str: str, arg_types: List[type], arg_names: List[str]) ->
 
 	for value_str, t, name in zip(split_args, arg_types, arg_names):
 		if t == bool:
-			value = value_str == "true"
+			value = value_str.lower() == "true"
 		else:
 			value = t(value_str)
 
@@ -255,6 +267,91 @@ def parse_arg_str(args_str: str, arg_types: List[type], arg_names: List[str]) ->
 		mlflow.set_tag(name, value)
 
 	return parsed
+
+
+def parse_optimizer_and_args(
+		optimizer_name: str, optimizer_args_str: str, params_q: Iterator[torch.nn.parameter.Parameter],
+		params_c: Iterator[torch.nn.parameter.Parameter], is_hybrid: bool) -> List:
+	class_and_args = {
+		"Adadelta": (
+			torch.optim.Adadelta,
+			[float, float, float, float],
+			["lr", "rho", "eps", "weight_decay"]
+		),
+		"Adagrad": (
+			torch.optim.Adagrad,
+			[float, float, float, float, float],
+			["lr", "lr_decay", "weight_decay", "initial_accumulator_value", "eps"]
+		),
+		"Adam": (
+			torch.optim.Adam,
+			[float, float, float, float, float, bool],
+			["lr", "beta1", "beta2", "eps", "weight_decay", "amsgrad"]
+		),
+		"AdamW": (
+			torch.optim.AdamW,
+			[float, float, float, float, float, bool],
+			["lr", "beta1", "beta2", "eps", "weight_decay", "amsgrad"]
+		),
+		"Adamax": (
+			torch.optim.Adamax,
+			[float, float, float, float, float],
+			["lr", "beta1", "beta2", "eps", "weight_decay"]
+		),
+		"ASGD": (
+			torch.optim.ASGD,
+			[float, float, float, float, float],
+			["lr", "lambd", "alpha", "t0", "weigth_decay"]
+		),
+		"LBFGS": (
+			torch.optim.LBFGS,
+			[float, int, int, float, float, int],
+			["lr", "max_iter", "max_eval", "tolerance_grad", "tolerance_change", "history_size"]
+		),
+		"RMSprop": (
+			torch.optim.RMSprop,
+			[float, float, float, float, float, bool],
+			["lr", "alpha", "eps", "weight_decay", "momentum", "centered"]
+		),
+		"Rprop": (
+			torch.optim.Rprop,
+			[float, float, float, float, float],
+			["lr", "eta1", "eta2", "step_size1", "step_size2"]
+		),
+		"SGD": (
+			torch.optim.SGD,
+			[float, float, float, float, bool],
+			["lr", "momentum", "dampening", "weight_decay", "nesterov"]
+		)
+	}
+
+	lr_c = 0
+
+	if is_hybrid:
+		split = optimizer_args_str.split(",", 1)
+		lr_c = float(split[0])
+		optimizer_args_str = split[1]
+
+	ca = class_and_args[optimizer_name]
+	opt_args = parse_arg_str(optimizer_args_str, ca[1], ca[2])
+
+	if optimizer_name == "Adam":
+		opt_args = [opt_args[0]] + [(opt_args[1], opt_args[2])] + opt_args[3:]
+	elif optimizer_name == "AdamW":
+		opt_args = [opt_args[0]] + [(opt_args[1], opt_args[2])] + opt_args[3:]
+	elif optimizer_name == "Adamax":
+		opt_args = [opt_args[0]] + [(opt_args[1], opt_args[2])] + opt_args[3:]
+	elif optimizer_name == "Rprop":
+		opt_args = [opt_args[0], (opt_args[1], opt_args[2]), (opt_args[3], opt_args[4])]
+
+	optimizer_q = ca[0](params_q, *opt_args)
+
+	if is_hybrid:
+		optimizer_c = ca[0](params_c, lr_c, *opt_args[1:])
+
+		return [optimizer_q, optimizer_c]
+	else:
+		return [optimizer_q]
 
 
 def cli():
@@ -338,6 +435,8 @@ def cli():
 		)
 		model_args = (train_input.shape[1], *model_args)  # infer the input size from the dataset
 		model = HybridAutoencoder(*model_args)
+		params_q = model.get_quantum_parameters()
+		params_c = model.get_classical_parameters()
 	elif model_name == "quantum":
 		model_args = parse_arg_str(
 			model_args_str,
@@ -346,86 +445,13 @@ def cli():
 		)
 		model_args = (train_input.shape[1], *model_args)  # infer the number of qubits from the dataset
 		model = QuantumModel(*model_args)
+		params_q = model.parameters()
+		params_c = []
 	else:
 		raise ValueError()
 
-	optimizer = None
-
-	if optimizer_name == "Adadelta":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, float, float, float],
-			["lr", "rho", "eps", "weight_decay"])
-		optimizer = torch.optim.Adadelta(model.parameters(), *opt_args)
-	elif optimizer_name == "Adagrad":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, float, float, float, float],
-			["lr", "lr_decay", "weight_decay", "initial_accumulator_value", "eps"]
-		)
-		optimizer = torch.optim.Adagrad(model.parameters(), *opt_args)
-	elif optimizer_name == "Adam":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, float, float, float, float, bool],
-			["lr", "beta1", "beta2", "eps", "weight_decay", "amsgrad"]
-		)
-		opt_args = [opt_args[0]] + [(opt_args[1], opt_args[2])] + opt_args[3:]
-		optimizer = torch.optim.Adam(model.parameters(), *opt_args)
-	elif optimizer_name == "AdamW":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, float, float, float, float, bool],
-			["lr", "beta1", "beta2", "eps", "weight_decay", "amsgrad"]
-		)
-		opt_args = [opt_args[0]] + [(opt_args[1], opt_args[2])] + opt_args[3:]
-		optimizer = torch.optim.AdamW(model.parameters(), *opt_args)
-	elif optimizer_name == "Adamax":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, float, float, float, float],
-			["lr", "beta1", "beta2", "eps", "weight_decay"]
-		)
-		opt_args = [opt_args[0]] + [(opt_args[1], opt_args[2])] + opt_args[3:]
-		optimizer = torch.optim.Adamax(model.parameters(), *opt_args)
-	elif optimizer_name == "ASGD":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, float, float, float, float],
-			["lr", "lambd", "alpha", "t0", "weigth_decay"]
-		)
-		optimizer = torch.optim.ASGD(model.parameters(), *opt_args)
-	elif optimizer_name == "LBFGS":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, int, int, float, float, int],
-			["lr", "max_iter", "max_eval", "tolerance_grad", "tolerance_change", "history_size"]
-		)
-		optimizer = torch.optim.LBFGS(model.parameters(), *opt_args)
-	elif optimizer_name == "RMSprop":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, float, float, float, float, bool],
-			["lr", "alpha", "eps", "weight_decay", "momentum", "centered"]
-		)
-		optimizer = torch.optim.RMSprop(model.parameters(), *opt_args)
-	elif optimizer_name == "Rprop":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, float, float, float, float],
-			["lr", "eta1", "eta2", "step_size1", "step_size2"]
-		)
-		opt_args = [opt_args[0], (opt_args[1], opt_args[2]), (opt_args[3], opt_args[4])]
-		optimizer = torch.optim.Rprop(model.parameters(), *opt_args)
-	elif optimizer_name == "SGD":
-		opt_args = parse_arg_str(
-			optimizer_args_str,
-			[float, float, float, float, bool],
-			["lr", "momentum", "dampening", "weight_decay", "nesterov"]
-		)
-		optimizer = torch.optim.SGD(model.parameters(), *opt_args)
-	else:
-		raise ValueError()
+	is_hybrid = model_name == "hybrid"
+	optimizer = parse_optimizer_and_args(optimizer_name, optimizer_args_str, params_q, params_c, is_hybrid)
 
 	training_loop(model, train_input, train_target, test_input, test_target, optimizer, steps, batch_size)
 	mlf_model = MLFModel(model.__class__, *model_args)
