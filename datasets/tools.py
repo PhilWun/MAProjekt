@@ -35,6 +35,6 @@ def load_csv(file: str, column_types: List[ColumnType]) -> Tuple[np.ndarray, np.
 		else:
 			raise ValueError()
 
-	preprocessed_array = np.concatenate(preprocessed_columns, axis=1)
+	preprocessed_array = np.concatenate(preprocessed_columns, axis=1).astype(np.float32)
 
 	return preprocessed_array, labels
