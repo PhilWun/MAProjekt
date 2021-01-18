@@ -177,6 +177,24 @@ class HybridAutoencoder(torch.nn.Module):
 		return chain(self.q_layer1.parameters(), self.q_layer2.parameters())
 
 
+class ClassicalAutoencoder(torch.nn.Module):
+	def __init__(self, input_size: int, intermediate_size: int, embedding_size: int):
+		super(ClassicalAutoencoder, self).__init__()
+
+		self.fc1 = torch.nn.Linear(input_size, intermediate_size)
+		self.fc2 = torch.nn.Linear(intermediate_size, embedding_size)
+		self.fc3 = torch.nn.Linear(embedding_size, intermediate_size)
+		self.fc4 = torch.nn.Linear(intermediate_size, input_size)
+
+	def forward(self, x: torch.Tensor) -> torch.Tensor:
+		x = torch.sigmoid(self.fc1(x))
+		x = torch.sigmoid(self.fc2(x))
+		x = torch.sigmoid(self.fc3(x))
+		x = torch.sigmoid(self.fc4(x))
+
+		return x
+
+
 T = TypeVar("T", bound=torch.nn.Module)
 
 
@@ -191,12 +209,13 @@ class MLFModel(PythonModel):
 	def predict(self, context: PythonModelContext, model_input: pd.DataFrame):
 		model = self.model_class(*self.args)
 
-		sd = pickle.load(open(context.artifacts["circuit_parameters"], "rb"))
+		sd = pickle.load(open(context.artifacts["parameters"], "rb"))
 		model.load_state_dict(sd)
 
 		return model(torch.tensor(model_input.to_numpy()))
 
 
+# TODO: add epoch number, save every epoch
 def log_model(pyt_model: torch.nn.Module, mlf_model: MLFModel):
 	sd = pyt_model.state_dict()
 	pickle.dump(sd, open("state_dict.pickle", mode="wb"))
@@ -212,7 +231,7 @@ def log_model(pyt_model: torch.nn.Module, mlf_model: MLFModel):
 			"src/pl/QNN3.py",
 			"src/pl/TwoQubitGate.py",
 		],
-		artifacts={"circuit_parameters": "runs:/" + mlflow.active_run().info.run_id + "/state_dict.pickle"})
+		artifacts={"parameters": "runs:/" + mlflow.active_run().info.run_id + "/state_dict.pickle"})
 
 
 def example_train_qnn1():
@@ -435,8 +454,8 @@ def cli():
 		)
 		model_args = (train_input.shape[1], *model_args)  # infer the input size from the dataset
 		model = HybridAutoencoder(*model_args)
-		params_q = model.get_quantum_parameters()
-		params_c = model.get_classical_parameters()
+		params_primary = model.get_quantum_parameters()
+		params_secondary = model.get_classical_parameters()
 	elif model_name == "quantum":
 		model_args = parse_arg_str(
 			model_args_str,
@@ -445,13 +464,23 @@ def cli():
 		)
 		model_args = (train_input.shape[1], *model_args)  # infer the number of qubits from the dataset
 		model = QuantumModel(*model_args)
-		params_q = model.parameters()
-		params_c = []
+		params_primary = model.parameters()
+		params_secondary = []
+	elif model_name == "classical":
+		model_args = parse_arg_str(
+			model_args_str,
+			[int, int],
+			["intermediate_size", "embedding_size"]
+		)
+		model_args = (train_input.shape[1], *model_args)  # infer the number of qubits from the dataset
+		model = ClassicalAutoencoder(*model_args)
+		params_primary = model.parameters()
+		params_secondary = []
 	else:
 		raise ValueError()
 
 	is_hybrid = model_name == "hybrid"
-	optimizer = parse_optimizer_and_args(optimizer_name, optimizer_args_str, params_q, params_c, is_hybrid)
+	optimizer = parse_optimizer_and_args(optimizer_name, optimizer_args_str, params_primary, params_secondary, is_hybrid)
 
 	training_loop(model, train_input, train_target, test_input, test_target, optimizer, steps, batch_size)
 	mlf_model = MLFModel(model.__class__, *model_args)
