@@ -1,7 +1,9 @@
 import argparse
+import os
 import pickle
 from itertools import chain
 from math import pi
+from os import listdir
 from typing import Callable, Optional, TypeVar, Type, List, Iterator
 
 import mlflow
@@ -42,7 +44,7 @@ def create_qlayer(constructor_func: Callable, q_num: int) -> qml.qnn.TorchLayer:
 
 def training_loop(
 		model: torch.nn.Module, train_input: torch.Tensor, train_target: torch.Tensor, test_input: Optional[torch.Tensor],
-		test_target: Optional[torch.Tensor], optis: List[torch.optim.Optimizer], steps: int, batch_size: int):
+		test_target: Optional[torch.Tensor], optis: List, steps: int, batch_size: int):
 	loss_func = torch.nn.MSELoss()
 	train_dataset = TensorDataset(train_input, train_target)
 	train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -78,6 +80,7 @@ def training_loop(
 		error_mean = error_sum / batch_cnt
 		print("Step:", i, "Training MSE:", error_mean)
 		mlflow.log_metric("Training MSE", error_mean, i)
+		log_model_parameters(model, i)
 
 		if test_data_available:
 			# calculating the error on the test dataset
@@ -195,32 +198,26 @@ class ClassicalAutoencoder(torch.nn.Module):
 		return x
 
 
-T = TypeVar("T", bound=torch.nn.Module)
-
-
 class MLFModel(PythonModel):
 	"""
 	MLflow model to store a trained model in a folder.
 	"""
-	def __init__(self, model_class: Type[T], *args):
+	def __init__(self, model_class: Type, *args):
 		self.model_class = model_class
 		self.args = args
 
 	def predict(self, context: PythonModelContext, model_input: pd.DataFrame):
 		model = self.model_class(*self.args)
 
-		sd = pickle.load(open(context.artifacts["parameters"], "rb"))
+		files = listdir(context.artifacts["parameters"])
+		sd = pickle.load(open(sorted(files)[-1], "rb"))
 		model.load_state_dict(sd)
 
 		return model(torch.tensor(model_input.to_numpy()))
 
 
 # TODO: add epoch number, save every epoch
-def log_model(pyt_model: torch.nn.Module, mlf_model: MLFModel):
-	sd = pyt_model.state_dict()
-	pickle.dump(sd, open("state_dict.pickle", mode="wb"))
-	mlflow.log_artifact("state_dict.pickle")
-
+def log_model(mlf_model: MLFModel):
 	mlflow.pyfunc.log_model(
 		"hybrid_model",
 		python_model=mlf_model,
@@ -231,7 +228,19 @@ def log_model(pyt_model: torch.nn.Module, mlf_model: MLFModel):
 			"src/pl/QNN3.py",
 			"src/pl/TwoQubitGate.py",
 		],
-		artifacts={"parameters": "runs:/" + mlflow.active_run().info.run_id + "/state_dict.pickle"})
+		artifacts={"parameter_folder": "runs:/" + mlflow.active_run().info.run_id + "/parameters"})
+
+
+def log_model_parameters(model: torch.nn.Module, step: int):
+	sd = model.state_dict()
+	folder_path = "/tmp/" + mlflow.active_run().info.run_id
+
+	if not os.path.exists(folder_path):
+		os.mkdir(folder_path)
+
+	file_name = folder_path + "/{:06}.pickle".format(step)
+	pickle.dump(sd, open(file_name, mode="wb"))
+	mlflow.log_artifact(file_name, "parameters")
 
 
 def example_train_qnn1():
@@ -484,7 +493,7 @@ def cli():
 
 	training_loop(model, train_input, train_target, test_input, test_target, optimizer, steps, batch_size)
 	mlf_model = MLFModel(model.__class__, *model_args)
-	log_model(model, mlf_model)
+	log_model(mlf_model)
 
 
 if __name__ == "__main__":
