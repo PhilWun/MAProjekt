@@ -216,7 +216,6 @@ class MLFModel(PythonModel):
 		return model(torch.tensor(model_input.to_numpy()))
 
 
-# TODO: add epoch number, save every epoch
 def log_model(mlf_model: MLFModel):
 	mlflow.pyfunc.log_model(
 		"hybrid_model",
