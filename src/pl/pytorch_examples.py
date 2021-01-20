@@ -15,9 +15,12 @@ from mlflow.pyfunc import PythonModel, PythonModelContext
 from sklearn.preprocessing import StandardScaler, RobustScaler
 from torch.utils.data import TensorDataset, DataLoader
 
-from . import QNN1
-from . import QNN2
-from . import QNN3
+import sys
+sys.path.append(".")  # add root of the project to the PYTHONPATH so that the other modules can be imported
+
+import QNN1
+import QNN2
+import QNN3
 import datasets.creditcardfraud.load as creditcardfraud
 import datasets.fashion_mnist.load as fashion_mnist
 import datasets.heart_disease_uci.load as heart_disease_uci
