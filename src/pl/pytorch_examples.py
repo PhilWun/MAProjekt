@@ -1,21 +1,22 @@
 import argparse
 import os
 import pickle
+import sys
 from itertools import chain
 from math import pi
 from os import listdir
-from typing import Callable, Optional, TypeVar, Type, List, Iterator
+from random import getrandbits
+from typing import Callable, Optional, Type, List, Iterator
 
 import mlflow
+import numpy as np
 import pandas as pd
 import pennylane as qml
 import torch
-import numpy as np
 from mlflow.pyfunc import PythonModel, PythonModelContext
 from sklearn.preprocessing import StandardScaler, RobustScaler
 from torch.utils.data import TensorDataset, DataLoader
 
-import sys
 sys.path.append(".")  # add root of the project to the PYTHONPATH so that the other modules can be imported
 
 import QNN1
@@ -395,6 +396,7 @@ def cli():
 	parser.add_argument("--batch_size", type=int)
 	parser.add_argument("--optimizer", type=str)
 	parser.add_argument("--optimizer_args", type=str)
+	parser.add_argument("--seed", type=str)
 
 	args = parser.parse_args()
 
@@ -407,25 +409,34 @@ def cli():
 	batch_size: int = args.batch_size
 	optimizer_name: str = args.optimizer
 	optimizer_args_str: str = args.optimizer_args
+	seed_str: str = args.seed
 
 	train_input = None
 	train_target = None
 	test_input = None
 	test_target = None
 
+	if seed_str == "":
+		seed = getrandbits(32)
+		mlflow.set_tag("seed", seed)
+	else:
+		seed = int(seed_str)
+
+	torch.random.manual_seed(seed)
+
 	if dataset_name == "trivial":
 		train_input = np.array([[0.8] * 3], dtype=np.float32)
 	elif dataset_name == "fashion_mnist":
 		train_input, _, test_input, _ = fashion_mnist.load_dataset()
 	elif dataset_name == "heart_disease_uci":
-		train_input, _, test_input, _ = heart_disease_uci.load_dataset()
+		train_input, _, test_input, _ = heart_disease_uci.load_dataset(rnd_seed=seed)
 	elif dataset_name == "creditcardfraud":
-		train_input, _, test_input, _ = creditcardfraud.load_dataset()
+		train_input, _, test_input, _ = creditcardfraud.load_dataset(rnd_seed=seed)
 	else:
 		raise ValueError(dataset_name)
 
 	if dataset_fraction != 1.0:
-		rng = np.random.default_rng()
+		rng = np.random.default_rng(seed)
 
 		# shuffle the rows
 		rng.shuffle(train_input, axis=0)

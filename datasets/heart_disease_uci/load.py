@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from datasets.tools import ColumnType, load_csv
 
 
-def load_dataset(test_set_fraction: float = 0.3, rnd_seed: float = 0):
+def load_dataset(test_set_fraction: float = 0.3, rnd_seed: int = 0):
 	"""
 	Loads the Heart Disease UCI dataset. https://www.kaggle.com/ronitf/heart-disease-uci
 
