@@ -28,7 +28,7 @@ entry_points:
       optimizer: {type: string, default: "Adam"}
       optimizer_args: {type: string, default: "0.1,0.9,0.999,1e-08,0,false"}
       seed: {type: string, default: ""}
-    command: "python src/pl/pytorch_examples.py --dataset {dataset} --dataset_fraction {dataset_fraction} --scaler {scaler} --model {model} --model_args {model_args} --steps {steps} --batch_size {batch_size} --optimizer {optimizer} --optimizer_args {optimizer_args} --seed {seed}"
+    command: "python src/pl/pytorch/pytorch_examples.py --dataset {dataset} --dataset_fraction {dataset_fraction} --scaler {scaler} --model {model} --model_args {model_args} --steps {steps} --batch_size {batch_size} --optimizer {optimizer} --optimizer_args {optimizer_args} --seed {seed}"
   qiskit:
     parameters:
       qnn: {type: string, default: "QNN1"}

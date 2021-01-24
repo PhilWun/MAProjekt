@@ -19,9 +19,9 @@ from torch.utils.data import TensorDataset, DataLoader
 
 sys.path.append(".")  # add root of the project to the PYTHONPATH so that the other modules can be imported
 
-import QNN1
-import QNN2
-import QNN3
+import src.pl.QNN1 as QNN1
+import src.pl.QNN2 as QNN2
+import src.pl.QNN3 as QNN3
 import datasets.creditcardfraud.load as creditcardfraud
 import datasets.fashion_mnist.load as fashion_mnist
 import datasets.heart_disease_uci.load as heart_disease_uci
