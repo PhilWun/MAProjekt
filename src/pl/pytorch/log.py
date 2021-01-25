@@ -24,12 +24,12 @@ class MLFModel(PythonModel):
 		sd = pickle.load(open(sorted(files)[-1], "rb"))
 		model.load_state_dict(sd)
 
-		return model(torch.tensor(model_input.to_numpy()))
+		return model.embed(torch.tensor(model_input.to_numpy()))
 
 
 def log_model(mlf_model: MLFModel):
 	mlflow.pyfunc.log_model(
-		"hybrid_model",
+		"model",
 		python_model=mlf_model,
 		conda_env="conda.yaml",
 		code_path=[
