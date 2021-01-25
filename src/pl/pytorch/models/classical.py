@@ -11,8 +11,18 @@ class ClassicalAutoencoder(torch.nn.Module):
 		self.fc4 = torch.nn.Linear(intermediate_size, input_size)
 
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
+		x = self.embed(x)
+		x = self.reconstruct(x)
+
+		return x
+
+	def embed(self, x: torch.Tensor) -> torch.Tensor:
 		x = torch.sigmoid(self.fc1(x))
 		x = torch.sigmoid(self.fc2(x))
+
+		return x
+
+	def reconstruct(self, x: torch.Tensor) -> torch.Tensor:
 		x = torch.sigmoid(self.fc3(x))
 		x = torch.sigmoid(self.fc4(x))
 

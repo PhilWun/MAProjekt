@@ -28,14 +28,27 @@ class QuantumModel(torch.nn.Module):
 		:param x: The input. Values should be in the range [0, pi].
 		:return: Output of the model. Values are in the range [-1, 1] if autoencoder is true, otherwise [0, pi].
 		"""
+		embedding = self.embed(x)
+
+		if self.autoencoder:
+			reconstruction = self.reconstruct(embedding)
+
+			return reconstruction
+		else:
+			return embedding
+
+	def embed(self, x: torch.Tensor) -> torch.Tensor:
 		embedding = self.q_layer1(x)
 		# scaling the values to be in the range [0, pi]
 		embedding = (embedding / 2.0 + 0.5) * pi
 
 		if self.autoencoder:
-			embedding[:, 0:self.q_num - self.embedding_size] = 0
-			reconstruction = self.q_layer2(embedding)
+			embedding = embedding[:, 0:self.embedding_size]
 
-			return reconstruction
-		else:
-			return embedding
+		return embedding
+
+	def reconstruct(self, x: torch.Tensor) -> torch.Tensor:
+		x = torch.cat((x, torch.zeros((x.shape[0], self.q_num - self.embedding_size))))
+		reconstruction = self.q_layer2(x)
+
+		return reconstruction

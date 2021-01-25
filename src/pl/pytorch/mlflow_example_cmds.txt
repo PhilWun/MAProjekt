@@ -1,0 +1,3 @@
+mlflow run -e pennylane_pytorch -P dataset=trivial -P model=quantum -P model_args=QNN1,false,2 -P optimizer_args=0.1,0.9,0.999,1e-08,0,false .
+mlflow run -e pennylane_pytorch -P dataset=trivial -P model=classical -P model_args=3,2 -P optimizer_args=0.001,0.9,0.999,1e-08,0,false .
+mlflow run -e pennylane_pytorch -P dataset=trivial -P model=hybrid -P model_args=3,2,QNN1 -P optimizer_args=0.001,0.1,0.9,0.999,1e-08,0,false .

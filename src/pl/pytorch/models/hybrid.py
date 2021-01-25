@@ -29,6 +29,12 @@ class HybridAutoencoder(torch.nn.Module):
 		:param x: Input. The range of the values can be anything, but should be appropriately scaled.
 		:return: Output of the model. The range of the values can be anything.
 		"""
+		embedding = self.embed(x)
+		reconstruction = self.reconstruct(embedding)
+
+		return reconstruction
+
+	def embed(self, x: torch.Tensor) -> torch.Tensor:
 		# encoder
 		x = torch.sigmoid(self.fc1(x))
 		x = x * pi  # scale with pi because input to the quantum layer should be in the range [0, pi]
@@ -37,10 +43,15 @@ class HybridAutoencoder(torch.nn.Module):
 		# scaling the values to be in the range [0, pi]
 		embedding = (embedding / 2.0 + 0.5) * pi
 		# bottleneck
-		embedding[:, 0:self.q_num - self.embedding_size] = 0
+		embedding = embedding[:, 0:self.embedding_size]
 
+		return embedding
+
+	def reconstruct(self, x: torch.Tensor) -> torch.Tensor:
+		# padding with zeros to match the input size of the quantum layer
+		x = torch.cat((x, torch.zeros((x.shape[0], self.q_num - self.embedding_size))), dim=1)
 		# decoder
-		x = self.q_layer2(embedding)
+		x = self.q_layer2(x)
 		reconstruction = self.fc2(x)
 
 		return reconstruction
