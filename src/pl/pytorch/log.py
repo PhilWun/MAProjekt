@@ -7,6 +7,7 @@ import mlflow
 import torch
 from mlflow.pyfunc import PythonModel, PythonModelContext
 import pandas as pd
+import numpy as np
 
 
 class MLFModel(PythonModel):
@@ -51,3 +52,19 @@ def log_model_parameters(model: torch.nn.Module, step: int):
 	file_name = folder_path + "/{:06}.pickle".format(step)
 	pickle.dump(sd, open(file_name, mode="wb"))
 	mlflow.log_artifact(file_name, "parameters")
+
+
+def log_embeddings(embeddings: torch.Tensor, labels: torch.Tensor, step: int):
+	folder_path = "/tmp/" + mlflow.active_run().info.run_id
+
+	if not os.path.exists(folder_path):
+		os.mkdir(folder_path)
+
+	embeddings_file_name = folder_path + "/{:06}_embeddings.csv".format(step)
+	labels_file_name = folder_path + "/{:06}_labels.csv".format(step)
+
+	np.savetxt(embeddings_file_name, embeddings.detach().numpy(), delimiter=",")
+	np.savetxt(labels_file_name, labels.detach().numpy(), delimiter=",")
+
+	mlflow.log_artifact(embeddings_file_name, "embeddings")
+	mlflow.log_artifact(labels_file_name, "labels")

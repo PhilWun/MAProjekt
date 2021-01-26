@@ -6,6 +6,7 @@ from typing import List, Iterator
 import mlflow
 import numpy as np
 import torch
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler
 
 sys.path.append(".")  # add root of the project to the PYTHONPATH so that the other modules can be imported
@@ -148,11 +149,6 @@ def cli():
 	optimizer_args_str: str = args.optimizer_args
 	seed_str: str = args.seed
 
-	train_input = None
-	train_target = None
-	test_input = None
-	test_target = None
-
 	if seed_str == "":
 		seed = getrandbits(32)
 		mlflow.set_tag("seed", seed)
@@ -161,26 +157,25 @@ def cli():
 
 	torch.random.manual_seed(seed)
 
+	test_input = None
+	train_label = None
+	test_label = None
+
 	if dataset_name == "trivial":
 		train_input = np.array([[0.8] * 3], dtype=np.float32)
 	elif dataset_name == "fashion_mnist":
-		train_input, _, test_input, _ = fashion_mnist.load_dataset()
+		train_input, train_label, test_input, test_label = fashion_mnist.load_dataset()
 	elif dataset_name == "heart_disease_uci":
-		train_input, _, test_input, _ = heart_disease_uci.load_dataset(rnd_seed=seed)
+		train_input, train_label, test_input, test_label = heart_disease_uci.load_dataset(rnd_seed=seed)
 	elif dataset_name == "creditcardfraud":
-		train_input, _, test_input, _ = creditcardfraud.load_dataset(rnd_seed=seed)
+		train_input, train_label, test_input, test_label = creditcardfraud.load_dataset(rnd_seed=seed)
 	else:
 		raise ValueError(dataset_name)
 
 	if dataset_fraction != 1.0:
-		rng = np.random.default_rng(seed)
-
-		# shuffle the rows
-		rng.shuffle(train_input, axis=0)
-		rng.shuffle(test_input, axis=0)
-		# keep only a fraction of the whole dataset
-		train_input = train_input[0:int(train_input.shape[0] * dataset_fraction)]
-		test_input = test_input[0:int(test_input.shape[0] * dataset_fraction)]
+		# choose a random subset of the training / test data
+		train_input, _, train_label, _ = train_test_split((train_input, train_label), train_size=dataset_fraction, random_state=seed)
+		test_input, _, test_label, _ = train_test_split((test_input, test_label), train_size=dataset_fraction, random_state=seed)
 
 	if scaler_name == "none":
 		pass
@@ -200,6 +195,12 @@ def cli():
 
 	if test_input is not None:
 		test_input = torch.tensor(test_input, requires_grad=False)
+
+	if train_label is not None:
+		train_label = torch.tensor(train_label, requires_grad=False)
+
+	if test_label is not None:
+		test_label = torch.tensor(test_label, requires_grad=False)
 
 	# set the target equal to the input, because the model is used as an autoencoder
 	train_target = train_input
@@ -241,7 +242,7 @@ def cli():
 	is_hybrid = model_name == "hybrid"
 	optimizer = parse_optimizer_and_args(optimizer_name, optimizer_args_str, params_primary, params_secondary, is_hybrid)
 
-	training_loop(model, train_input, train_target, test_input, test_target, optimizer, steps, batch_size)
+	training_loop(model, train_input, train_target, train_label, test_input, test_target, test_label, optimizer, steps, batch_size)
 	mlf_model = MLFModel(model.__class__, *model_args)
 	log_model(mlf_model)
 

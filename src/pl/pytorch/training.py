@@ -7,12 +7,13 @@ from torch.utils.data import TensorDataset, DataLoader
 
 sys.path.append(".")  # add root of the project to the PYTHONPATH so that the other modules can be imported
 
-from src.pl.pytorch.log import log_model_parameters
+from src.pl.pytorch.log import log_model_parameters, log_embeddings
 
 
 def training_loop(
-		model: torch.nn.Module, train_input: torch.Tensor, train_target: torch.Tensor, test_input: Optional[torch.Tensor],
-		test_target: Optional[torch.Tensor], optis: List, steps: int, batch_size: int):
+		model: torch.nn.Module, train_input: torch.Tensor, train_target: torch.Tensor, train_label: Optional[torch.Tensor],
+		test_input: Optional[torch.Tensor], test_target: Optional[torch.Tensor], test_label: Optional[torch.Tensor],
+		optis: List, steps: int, batch_size: int):
 	loss_func = torch.nn.MSELoss()
 	train_dataset = TensorDataset(train_input, train_target)
 	train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -64,3 +65,12 @@ def training_loop(
 			error_mean = error_sum / batch_cnt
 			print("Step:", i, "Test MSE:", error_mean)
 			mlflow.log_metric("Test MSE", error_mean, i)
+
+		# test if the model has an "embed" function and use it to generate embeddings and save them
+		embed_func = getattr(model, "embed", None)
+
+		if callable(embed_func):
+			if train_label is not None and test_input is not None and test_label is not None:
+				embeddings = torch.cat((model.embed(train_input), model.embed(test_input)), dim=0)
+				labels = torch.cat((train_label, test_label), dim=0)
+				log_embeddings(embeddings, labels, i)
