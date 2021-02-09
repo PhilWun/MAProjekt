@@ -1,4 +1,6 @@
 import os
+
+import mlflow
 import yaml
 
 
@@ -31,6 +33,15 @@ def fix_artifact_paths(mlruns_path: str):
 					meta_file = open(os.path.join(abspath, exp_folder, run_folder, "meta.yaml"), mode="w")
 					yaml.dump(content, meta_file)
 					meta_file.close()
+
+
+def get_artifact_uri(run_id: str) -> str:
+	uri: str = mlflow.get_run(run_id).info.artifact_uri
+
+	if uri.startswith("file://"):
+		uri = uri[7:]
+
+	return uri
 
 
 if __name__ == "__main__":
