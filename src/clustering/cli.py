@@ -85,12 +85,19 @@ if __name__ == "__main__":
 	print(embeddings_path)
 	print(labels_path)
 	embeddings = np.loadtxt(embeddings_path, delimiter=",")
-	labels = np.loadtxt(labels_path, delimiter=",")
+	real_labels = np.loadtxt(labels_path, delimiter=",")
 
 	cluster_labels = cluster_algo.fit_predict(embeddings)
 	clusters = {}
 
 	for cluster_label in np.unique(cluster_labels):
-		clusters[int(cluster_label)] = list(np.compress(cluster_labels == cluster_label, labels))
+		labels_in_cluster = np.compress(cluster_labels == cluster_label, real_labels).astype(dtype=np.int)
+		label_counts = np.bincount(labels_in_cluster)
+		label_dict = {}
+
+		for i, count in enumerate(label_counts):
+			label_dict["Label " + str(i)] = int(count)
+
+		clusters["Cluster " + str(cluster_label)] = label_dict
 
 	mlflow.log_dict(clusters, "clusters.json")
