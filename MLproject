@@ -69,5 +69,4 @@ entry_points:
       run_id: {type: string, default: "5c70d086261e49cc8b7ea264e847f78a"}
       cluster_algo: {type: string, default: "AgglomerativeClustering"}
       cluster_args: {type: string, default: "2,average"}
-      step: {type: int, default: -1}
-    command: "python src/clustering/cli.py --run_id {run_id} --cluster_algo {cluster_algo} --cluster_args {cluster_args} --step {step}"
+    command: "python src/clustering/cli.py --run_id {run_id} --cluster_algo {cluster_algo} --cluster_args {cluster_args}"
