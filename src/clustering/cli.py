@@ -4,7 +4,7 @@ import sys
 
 import mlflow
 from sklearn.cluster import AffinityPropagation, AgglomerativeClustering, DBSCAN, FeatureAgglomeration, OPTICS, \
-	SpectralClustering
+	SpectralClustering, Birch, KMeans, MiniBatchKMeans, MeanShift, SpectralBiclustering, SpectralCoclustering
 import numpy as np
 
 sys.path.append(".")
@@ -26,12 +26,11 @@ if __name__ == "__main__":
 	cluster_args: str = args.cluster_args
 	step: int = args.step
 
-	# TODO: add other clustering algorithms
 	if cluster_algo_name == "AffinityPropagation":
 		args = parse_arg_str(
 			cluster_args,
-			[float, int, int, str],
-			["damping", "max_iter", "convergence_iter"])
+			[float],
+			["damping"])
 		cluster_algo = AffinityPropagation(*args)
 	elif cluster_algo_name == "AgglomerativeClustering":
 		args = parse_arg_str(
@@ -40,6 +39,13 @@ if __name__ == "__main__":
 			["n_clusters", "linkage"]
 		)
 		cluster_algo = AgglomerativeClustering(n_clusters=args[0], linkage=args[1])
+	elif cluster_algo_name == "Birch":
+		args = parse_arg_str(
+			cluster_args,
+			[float, int, int],
+			["threshold", "branching_factor", "n_clusters"]
+		)
+		cluster_algo = Birch(threshold=args[0], branching_factor=args[1], n_clusters=args[2])
 	elif cluster_algo_name == "DBSCAN":
 		args = parse_arg_str(
 			cluster_args,
@@ -54,6 +60,27 @@ if __name__ == "__main__":
 			["n_clusters", "linkage"]
 		)
 		cluster_algo = FeatureAgglomeration(n_clusters=args[0], linkage=args[1])
+	elif cluster_algo_name == "KMeans":
+		args = parse_arg_str(
+			cluster_args,
+			[int],
+			["n_clusters"]
+		)
+		cluster_algo = KMeans(n_clusters=args[0])
+	elif cluster_algo_name == "MiniBatchKMeans":
+		args = parse_arg_str(
+			cluster_args,
+			[int],
+			["n_clusters"]
+		)
+		cluster_algo = MiniBatchKMeans(n_clusters=args[0])
+	elif cluster_algo_name == "MeanShift":
+		args = parse_arg_str(
+			cluster_args,
+			[float],
+			["bandwidth"]
+		)
+		cluster_algo = MeanShift(bandwidth=args[0])
 	elif cluster_algo_name == "OPTICS":
 		args = parse_arg_str(
 			cluster_args,
@@ -64,10 +91,24 @@ if __name__ == "__main__":
 	elif cluster_algo_name == "SpectralClustering":
 		args = parse_arg_str(
 			cluster_args,
-			[int, int, int],
-			["n_clusters", "n_components", "n_init"]
+			[int],
+			["n_clusters"]
 		)
 		cluster_algo = SpectralClustering(n_clusters=args[0], n_components=args[1], n_init=args[2])
+	elif cluster_algo_name == "SpectralBiclustering":
+		args = parse_arg_str(
+			cluster_args,
+			[int],
+			["n_clusters"]
+		)
+		cluster_algo = SpectralBiclustering(n_clusters=args[0])
+	elif cluster_algo_name == "SpectralCoclustering":
+		args = parse_arg_str(
+			cluster_args,
+			[int, str],
+			["n_clusters"]
+		)
+		cluster_algo = SpectralCoclustering(n_clusters=args[0])
 	else:
 		raise ValueError(cluster_algo_name)
 
