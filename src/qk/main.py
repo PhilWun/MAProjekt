@@ -117,6 +117,7 @@ def cli():
 	parser.add_argument("--min_step_size", type=float)
 	parser.add_argument("--step_size_multiplier", type=float)
 	parser.add_argument("--armijo_parameter", type=float)
+	parser.add_argument("--min_gradient_norm", type=float)
 	parser.add_argument("--max_failed_rejection_sampling", type=int)
 	parser.add_argument("--xtol", type=float)  # alias: xatol
 	parser.add_argument("--adaptive", type=int)  # 0: false, 1: true
@@ -152,6 +153,7 @@ def cli():
 	min_step_size = args.min_step_size
 	step_size_multiplier = args.step_size_multiplier
 	armijo_parameter = args.armijo_parameter
+	min_gradient_norm = args.min_gradient_norm
 	max_failed_rejection_sampling = args.max_failed_rejection_sampling
 	xtol = args.xtol
 	adaptive = args.adaptive
@@ -178,7 +180,7 @@ def cli():
 	elif optimizer_name == "L_BFGS_B":
 		optimizer = L_BFGS_B(maxfun, maxiter, factr, -1, eps)
 	elif optimizer_name == "GSLS":
-		optimizer = GSLS(maxiter, maxfun, False, sampling_radius, sampling_size_factor, initial_step_size, min_step_size, step_size_multiplier, armijo_parameter, gtol, max_failed_rejection_sampling)
+		optimizer = GSLS(maxiter, maxfun, False, sampling_radius, sampling_size_factor, initial_step_size, min_step_size, step_size_multiplier, armijo_parameter, min_gradient_norm, max_failed_rejection_sampling)
 	elif optimizer_name == "NELDER_MEAD":
 		optimizer = NELDER_MEAD(maxiter, maxfun, False, xtol, tol, bool(adaptive))
 	elif optimizer_name == "NFT":
