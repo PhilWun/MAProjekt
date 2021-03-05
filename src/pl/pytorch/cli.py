@@ -9,10 +9,9 @@ import torch
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler
 
-from parsing import parse_arg_str, parse_optimizer_and_args
-
 sys.path.append(".")  # add root of the project to the PYTHONPATH so that the other modules can be imported
 
+from src.parsing import parse_arg_str, parse_optimizer_and_args
 from src.pl.pytorch.log import log_model, MLFModel
 from src.pl.pytorch.models.classical import ClassicalAutoencoder
 from src.pl.pytorch.models.hybrid import HybridAutoencoder
