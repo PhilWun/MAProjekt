@@ -14,7 +14,7 @@ def load_dataset(test_set_fraction: float = 0.3, rnd_seed: int = 0):
 		ColumnType.LABEL
 	] + 30 * [ColumnType.NUMERIC]
 
-	data, labels = load_csv("/datasets/breast_cancer_wisconsin/data.csv", column_types)
+	data, labels = load_csv("/home/philipp/MEGA/Studium/PlanQK/MA/Projekt/datasets/breast_cancer_wisconsin/data.csv", column_types)
 	input_train, input_test, target_train, target_test = train_test_split(
 		data, labels, test_size=test_set_fraction, random_state=rnd_seed, shuffle=True)
 
