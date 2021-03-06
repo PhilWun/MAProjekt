@@ -21,6 +21,8 @@ from src.pl.pytorch.training import training_loop
 import datasets.creditcardfraud.load as creditcardfraud
 import datasets.fashion_mnist.load as fashion_mnist
 import datasets.heart_disease_uci.load as heart_disease_uci
+import datasets.breast_cancer_wisconsin.load as breast_cancer_wisconsin
+import datasets.iris.load as iris
 
 
 def cli():
@@ -69,6 +71,10 @@ def cli():
 		train_input, train_label, test_input, test_label = heart_disease_uci.load_dataset(rnd_seed=seed)
 	elif dataset_name == "creditcardfraud":
 		train_input, train_label, test_input, test_label = creditcardfraud.load_dataset(rnd_seed=seed)
+	elif dataset_name == "breast_cancer_wisconsin":
+		train_input, train_label, test_input, test_label = breast_cancer_wisconsin.load_dataset(rnd_seed=seed)
+	elif dataset_name == "iris":
+		train_input, train_label, test_input, test_label = iris.load_dataset(rnd_seed=seed)
 	else:
 		raise ValueError(dataset_name)
 
