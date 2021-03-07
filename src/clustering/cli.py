@@ -51,7 +51,7 @@ if __name__ == "__main__":
 			[float, int],
 			["eps", "min_samples"]
 		)
-		cluster_algo = DBSCAN(*args, metric="precomputed")
+		cluster_algo = DBSCAN(*args)
 	elif cluster_algo_name == "FeatureAgglomeration":
 		args = parse_arg_str(
 			cluster_args,
