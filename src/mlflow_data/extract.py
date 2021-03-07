@@ -79,4 +79,5 @@ def print_convergence_indexes():
 # extract_metrics_from_csv("src/mlflow_data/adam_runs.csv", "src/mlflow_data/optimizer_test/output.csv", "Training MSE")
 
 if __name__ == "__main__":
-	print_convergence_indexes()
+	extract_all_metrics()
+	# print_convergence_indexes()

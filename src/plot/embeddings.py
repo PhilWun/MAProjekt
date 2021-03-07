@@ -16,6 +16,8 @@ def plot_embeddings(embeddings_path: str, labels_path: str) -> go.Figure:
 	y0 = np.compress(labels == 0, embeddings[:, 1])
 	x1 = np.compress(labels == 1, embeddings[:, 0])
 	y1 = np.compress(labels == 1, embeddings[:, 1])
+	x2 = np.compress(labels == 2, embeddings[:, 0])
+	y2 = np.compress(labels == 2, embeddings[:, 1])
 
 	fig = go.Figure()
 	fig.add_trace(go.Scatter(
@@ -26,6 +28,10 @@ def plot_embeddings(embeddings_path: str, labels_path: str) -> go.Figure:
 		x=x1,
 		y=y1,
 		mode="markers", marker_color="blue"))
+	fig.add_trace(go.Scatter(
+		x=x2,
+		y=y2,
+		mode="markers", marker_color="orange"))
 
 	return fig
 
