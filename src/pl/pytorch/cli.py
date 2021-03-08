@@ -6,13 +6,14 @@ from typing import List, Iterator
 import mlflow
 import numpy as np
 import torch
+from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler
 
 sys.path.append(".")  # add root of the project to the PYTHONPATH so that the other modules can be imported
 
 from src.parsing import parse_arg_str, parse_optimizer_and_args
-from src.pl.pytorch.log import log_model, MLFModel
+from src.pl.pytorch.log import log_model, MLFModel, log_embeddings
 from src.pl.pytorch.models.classical import ClassicalAutoencoder
 from src.pl.pytorch.models.hybrid import HybridAutoencoder
 from src.pl.pytorch.models.quantum import QuantumModel
@@ -142,6 +143,20 @@ def cli():
 		model = ClassicalAutoencoder(*model_args)
 		params_primary = model.parameters()
 		params_secondary = []
+	elif model_name == "PCA":
+		model_args = parse_arg_str(
+			model_args_str,
+			[int],
+			["n_components"]
+		)
+
+		pca = PCA(n_components=model_args[0])
+		pca.fit(train_input.detach().numpy())
+		embeddings = pca.transform(np.concatenate([train_input.detach().numpy(), test_input.detach().numpy()], axis=0))
+
+		log_embeddings(torch.Tensor(embeddings), train_label, 0)
+
+		return
 	else:
 		raise ValueError()
 
