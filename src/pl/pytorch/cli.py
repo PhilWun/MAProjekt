@@ -154,7 +154,7 @@ def cli():
 		pca.fit(train_input.detach().numpy())
 		embeddings = pca.transform(np.concatenate([train_input.detach().numpy(), test_input.detach().numpy()], axis=0))
 
-		log_embeddings(torch.Tensor(embeddings), torch.cat([train_input, test_input], dim=0), 0)
+		log_embeddings(torch.Tensor(embeddings), torch.cat([train_label, test_label], dim=0), 0)
 
 		return
 	else:
