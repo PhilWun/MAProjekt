@@ -11,12 +11,10 @@ optimizer_names = np.array([
 	"COBYLA",
 	"L_BFGS_B",
 	"GSLS",
-	"NELDER_MEAD",
 	"NFT",
 	"POWELL",
 	"SLSQP",
 	"SPSA",
-	"TNC"
 ])
 
 failed_convergence = np.array([
@@ -26,12 +24,10 @@ failed_convergence = np.array([
 	0,
 	20,
 	80,
-	100,
 	0,
 	10,
 	0,
 	0,
-	100
 ])
 
 avg_func_evals = np.array([
@@ -41,16 +37,14 @@ avg_func_evals = np.array([
 	37.9,
 	255.25,
 	184,
-	0,
 	61.3,
 	513.55555,
 	278.7,
 	81.9,
-	0
 ])
 
-gradient_based = [0, 1, 2, 4, 5, 9, 10, 11]
-gradient_free = [3, 6, 7, 8]
+gradient_based = [0, 1, 2, 4, 5, 8, 9]
+gradient_free = [3, 6, 7]
 
 data_gradient_based = pd.DataFrame(data={
 	"optimizer": optimizer_names[gradient_based],
@@ -65,7 +59,7 @@ data_gradient_free = pd.DataFrame(data={
 })
 
 # fig = px.bar(data, x="optimizer", y="avg_func_evals", color="failed_convergence", color_continuous_scale="bluered", facet_col="optim_type")
-fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_width=[0.65, 0.35], horizontal_spacing=0.03)
+fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_width=[0.7, 0.3], horizontal_spacing=0.03)
 
 fig.add_trace(
 	go.Bar(

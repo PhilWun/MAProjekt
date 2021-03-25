@@ -36,7 +36,7 @@ def extract_metrics_from_csv(run_id_file_name: str, output_file_name: str, metri
 
 
 def extract_all_metrics():
-	input_folder_path = "src/mlflow_data/optimizer_test/mlflow_csv"
+	input_folder_path = "src/mlflow_data/clustering/model_comp/iris/mlflow_csv"
 	input_files = os.listdir(input_folder_path)
 
 	for input_file in input_files:
@@ -44,7 +44,7 @@ def extract_all_metrics():
 		extract_metrics_from_csv(
 			input_file_path,
 			input_file_path.replace("runs", "metrics").replace("mlflow_csv", "metrics").replace(".csv", ".json"),
-			"Training MSE")
+			"adjusted_mutual_info_score")
 
 
 def load_metrics(file_path: str) -> List[List[float]]:

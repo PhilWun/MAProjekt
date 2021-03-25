@@ -23,11 +23,11 @@ def plot_embeddings(embeddings_path: str, labels_path: str) -> go.Figure:
 	fig.add_trace(go.Scatter(
 		x=x0,
 		y=y0,
-		mode="markers", marker_color="red"))
+		mode="markers", marker_color="red", name="Klasse 0"))
 	fig.add_trace(go.Scatter(
 		x=x1,
 		y=y1,
-		mode="markers", marker_color="blue"))
+		mode="markers", marker_color="blue", name="Klasse 1"))
 	fig.add_trace(go.Scatter(
 		x=x2,
 		y=y2,
@@ -57,11 +57,11 @@ def plot_all_steps_to_file(run_id: str, folder: str):
 		if fig is None:
 			break
 		else:
-			fig.write_image(os.path.join(folder, "{:03}.png".format(step)), scale=2)
+			fig.write_image(os.path.join(folder, "{:03}.pdf".format(step)), scale=2)
 			step += 1
 
 
 if __name__ == "__main__":
 	# for i in range(1000):
 	# 	plot_embeddings_from_run("b360ae685c6847e4aa4b0e54d2453320", i).write_image("src/plot/images/{:03}.png".format(i), scale=2)
-	plot_all_steps_to_file("b360ae685c6847e4aa4b0e54d2453320", "src/plot/images2")
+	plot_all_steps_to_file("d5114f246f034516929ee4405e09d44a", "src/plot/d5114f246f034516929ee4405e09d44a")

@@ -30,7 +30,7 @@ def add_line_with_std(fig: go.Figure, x: np.ndarray, mean: np.ndarray, std: np.n
 	))
 
 
-def main():
+def optimizer_plot():
 	folder_path = "../mlflow_data/optimizer_test/metrics"
 	files = sorted(os.listdir(folder_path))
 	files = [files[0], files[10], files[3], files[7]]
@@ -67,4 +67,33 @@ def main():
 	fig.write_image("error_plot.pdf")
 
 
-main()
+def reconstruction_plot():
+	folder_path = "../mlflow_data/clustering/model_comp/breast_cancer_wisconsin/metrics"
+	files = sorted(os.listdir(folder_path))
+
+	fig = go.Figure()
+
+	for file in files:
+		name = file.replace("_metrics.json", "").upper()
+
+		metrics = json.load(open(folder_path + "/" + file, mode="rt"))
+
+		metrics_arr = np.array(metrics).transpose()
+		mean = np.mean(metrics_arr, axis=1)[0:100]
+
+		if name == "PCA":
+			mean = np.repeat(mean, 100, axis=0)
+
+		std = np.std(metrics_arr, axis=1)[0:100]
+		x = np.arange(0, mean.shape[0])
+		dash = "solid"
+
+		add_line_with_std(fig, x, mean, std, name, dash)
+
+	fig.update_traces(mode="lines")
+	fig.update_layout(xaxis_title="Epochen", yaxis_title="angepasste gegenseitige Information")
+	fig.show()
+	fig.write_image("bcw_model_comp.pdf")
+
+
+reconstruction_plot()
